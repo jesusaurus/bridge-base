@@ -1,0 +1,64 @@
+group = 'org.sagebionetworks'
+ext.name = 'bridge-base'
+version = '0.1.0+' + (new Date()).format(
+        'yyyyMMddHHmm', TimeZone.getTimeZone("UTC"))
+
+/*** Java ***/
+
+apply plugin: 'java'
+
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+
+jar {
+    group = project.group
+    baseName = project.ext.name
+    version = project.version
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile 'junit:junit:' + junitVer
+}
+
+/*** IDE ***/
+
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+/*** Code Quality Tools ***/
+
+apply plugin: 'findbugs'
+tasks.withType(FindBugs) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+}
+
+apply plugin: 'jdepend'
+tasks.withType(JDepend) {
+    reports {
+        xml.enabled = false
+        text.enabled = true
+    }
+}
+
+apply plugin: 'pmd'
+tasks.withType(Pmd) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+}
+
+apply plugin: 'jacoco'
+
+/*** Wrapper ***/
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.6'
+}
