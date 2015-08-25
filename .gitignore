@@ -12,3 +12,8 @@ gradle-app.setting
 .project
 .settings/
 bin/
+
+# IntelliJ
+develop.iml
+develop.ipr
+develop.iws
