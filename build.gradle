@@ -21,6 +21,7 @@ repositories {
 }
 
 dependencies {
+    compile 'com.google.guava:guava:' + guavaVer
     testCompile 'junit:junit:' + junitVer
 }
 
