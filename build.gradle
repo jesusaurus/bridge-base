@@ -22,6 +22,11 @@ repositories {
 
 dependencies {
     compile 'com.google.guava:guava:' + guavaVer
+    compile 'joda-time:joda-time:' + jodaVer
+    compile 'commons-codec:commons-codec:' + commonsCodecVer
+    compile 'org.apache.shiro:shiro-core:' + shiroVer
+    compile 'org.bouncycastle:bcprov-jdk15on:' + bcVer
+    compile 'org.bouncycastle:bcpkix-jdk15on:' + bcVer
     testCompile 'junit:junit:' + junitVer
 }
 
