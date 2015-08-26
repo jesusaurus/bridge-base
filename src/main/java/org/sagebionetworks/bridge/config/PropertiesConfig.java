@@ -49,8 +49,8 @@ public class PropertiesConfig implements Config {
      * or, if sensitive, dummy values. The values on the template file are to be overwritten by
      * environment variables and/or system properties in that order.
      * <p>
-     * The config template file can be kept in the source code. Then its path obtained by
-     * <code>Paths.get(getClass().getClassLoader().getResource(<relative-path>).getPath());</code>.
+     * The config template file can be kept in the source code. Then its path can be obtained by
+     * <code>Paths.get(getClass().getClassLoader().getResource("relative/path/to/config").getPath());</code>.
      *
      * @param configTemplate
      *            Path to the config template file. 
