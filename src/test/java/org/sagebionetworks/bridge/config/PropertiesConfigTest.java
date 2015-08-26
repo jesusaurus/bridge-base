@@ -44,9 +44,9 @@ public class PropertiesConfigTest {
 
     @Test
     public void testGetEnvironment() throws IOException {
-        System.setProperty(PropertiesConfig.ENV_KEY, "develop");
+        System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(configFile);
-        assertEquals(Environment.DEVELOP, config.getEnvironment());
+        assertEquals(Environment.DEV, config.getEnvironment());
     }
 
     @Test

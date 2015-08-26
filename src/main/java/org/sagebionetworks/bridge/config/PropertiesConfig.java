@@ -43,46 +43,63 @@ public class PropertiesConfig implements Config {
     private final Pattern delimiter;
 
     /**
+     * Loads config from a template file.
+     * <p>
+     * The config template should contain all the config entries. The values can be default values,
+     * or, if sensitive, dummy values. The values on the template file are to be overwritten by
+     * environment variables and/or system properties in that order.
+     * <p>
+     * The config template file can be kept in the source code. Then its path obtained by
+     * <code>Paths.get(getClass().getClassLoader().getResource(<relative-path>).getPath());</code>.
+     *
      * @param configTemplate
-     *            Path to the config template file in the source code. The
-     *            config template should contain all the config entries. The
-     *            values can be default values, or, if sensitive, dummy values.
-     *            The values on the template file are to be overwritten by
-     *            environment variables and/or system properties in that order.
+     *            Path to the config template file. 
      */
     public PropertiesConfig(final Path configTemplate) throws IOException {
-        this(configTemplate, configTemplate, DEFAULT_LIST_DELIMITER);
+        this(configTemplate, null, DEFAULT_LIST_DELIMITER);
     }
 
     /**
+     * Loads config from a template file and a local config file.
+     * <p>
+     * The config template should contain all the config entries. The values can be default values,
+     * or, if sensitive, dummy values. The values on the template file are to be overwritten by
+     * those of the local config file, environment variables and/or system properties in that order.
+     * <p>
+     * The config template file can be kept in the source code. Then its path can be obtained by
+     * <code>Paths.get(getClass().getClassLoader().getResource("relative/path/to/config").getPath());</code>.
+     * <p>
+     * The local config file can be kept in the user's home directory. Then its path can be obtained
+     * by <code>Paths.get(System.getProperty("user.home") + "/path/to/config");</code>.
+     *
      * @param configTemplate
-     *            Path to the config template file in the source code. The
-     *            config template should contain all the config entries. The
-     *            values can be default values, or, if sensitive, dummy values.
-     *            The values on the template file are to be overwritten by those
-     *            of the local config file, environment variables, and/or system
-     *            properties in that order.
+     *            Path to the config template file in the source code.
      *
      * @param userConfig
-     *            Path to the default local config file which is inside the
-     *            user's home directory.
+     *            Path to the local config file.
      */
     public PropertiesConfig(final Path configTemplate, final Path userConfig) throws IOException {
         this(configTemplate, userConfig, DEFAULT_LIST_DELIMITER);
     }
 
     /**
+     * Loads config from a template file and a local config file.
+     * <p>
+     * The config template should contain all the config entries. The values can be default values,
+     * or, if sensitive, dummy values. The values on the template file are to be overwritten by
+     * those of the local config file, environment variables and/or system properties in that order.
+     * <p>
+     * The config template file can be kept in the source code. Then its path can be obtained by
+     * <code>Paths.get(getClass().getClassLoader().getResource("relative/path/to/config").getPath());</code>.
+     * <p>
+     * The local config file can be kept in the user's home directory. Then its path can be obtained
+     * by <code>Paths.get(System.getProperty("user.home") + "/path/to/config");</code>.
+     *
      * @param configTemplate
-     *            Path to the config template file in the source code. The
-     *            config template should contain all the config entries. The
-     *            values can be default values, or, if sensitive, dummy values.
-     *            The values on the template file are to be overwritten by those
-     *            of the local config file, environment variables, and/or system
-     *            properties in that order.
+     *            Path to the config template file in the source code.
      *
      * @param userConfig
-     *            Path to the default local config file which is inside the
-     *            user's home directory.
+     *            Path to the local config file.
      *
      * @param delimiterRegex
      *            The regular expression for the delimiter that is used to
@@ -91,18 +108,19 @@ public class PropertiesConfig implements Config {
     public PropertiesConfig(final Path configTemplate, final Path localConfig,
             final String delimiterRegex) throws IOException {
         checkNotNull(configTemplate);
-        checkNotNull(localConfig);
         checkNotNull(delimiterRegex);
         final Properties properties = new Properties();
-        try (final Reader templateReader = Files.newBufferedReader(configTemplate);
-                final Reader localReader = Files.newBufferedReader(localConfig)) {
+        try (final Reader templateReader = Files.newBufferedReader(configTemplate)) {
             properties.load(templateReader);
-            properties.load(localReader);
+        }
+        if (localConfig != null) {
+            try (final Reader localReader = Files.newBufferedReader(localConfig)) {
+                properties.load(localReader);
+            }
         }
         user = readUser(properties);
         environment = readEnvironment(properties);
-        final Properties collapsed = collapse(properties, environment.name().toLowerCase());
-        this.properties = new Properties(collapsed);
+        this.properties = new Properties(collapse(properties, environment.name().toLowerCase()));
         delimiter = Pattern.compile(delimiterRegex);
     }
 
@@ -169,7 +187,7 @@ public class PropertiesConfig implements Config {
 
     private Environment readEnvironment(final Properties properties) {
         final String envName = read(ENV_KEY, properties);
-        if (envName == null) {
+        if (Strings.isNullOrEmpty(envName)) {
             return DEFAULT_ENV;
         }
         for (Environment env : Environment.values()) {
