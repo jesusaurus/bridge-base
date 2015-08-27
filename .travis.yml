@@ -1,0 +1,8 @@
+language: java
+jdk: openjdk7
+script: ./gradlew check --info
+deploy:
+  provider: script
+  script: ./gradlew publish
+  on:
+    branch: release
