@@ -89,9 +89,6 @@ publishing {
     }
     repositories {
         maven {
-            url "$buildDir/repo"
-        }
-        maven {
             url "s3://${System.env.REPO_MAVEN_BUCKET}"
             credentials(AwsCredentials) {
                 accessKey "${System.env.REPO_PUBLISHER_KEY}"
