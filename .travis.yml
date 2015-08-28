@@ -3,6 +3,6 @@ jdk: openjdk7
 script: ./gradlew check --info
 deploy:
   provider: script
-  script: ./gradlew publish
+  script: ./gradlew publish --info
   on:
     branch: release
