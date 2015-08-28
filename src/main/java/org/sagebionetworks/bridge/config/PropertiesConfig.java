@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -110,11 +111,11 @@ public class PropertiesConfig implements Config {
         checkNotNull(configTemplate);
         checkNotNull(delimiterRegex);
         final Properties properties = new Properties();
-        try (final Reader templateReader = Files.newBufferedReader(configTemplate)) {
+        try (final Reader templateReader = Files.newBufferedReader(configTemplate, StandardCharsets.UTF_8)) {
             properties.load(templateReader);
         }
         if (localConfig != null) {
-            try (final Reader localReader = Files.newBufferedReader(localConfig)) {
+            try (final Reader localReader = Files.newBufferedReader(localConfig, StandardCharsets.UTF_8)) {
                 properties.load(localReader);
             }
         }
