@@ -76,3 +76,24 @@ jacocoTestReport {
 task wrapper(type: Wrapper) {
     gradleVersion = '2.6'
 }
+
+/*** Maven publishing ***/
+
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "s3://${System.env.REPO_MAVEN_BUCKET}"
+            credentials(AwsCredentials) {
+                accessKey "${System.env.REPO_PUBLISHER_KEY}"
+                secretKey "${System.env.REPO_PUBLISHER_SECRET}"
+            }
+        }
+    }
+}
