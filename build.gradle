@@ -21,12 +21,14 @@ repositories {
 }
 
 dependencies {
+    compile 'org.apache.commons:commons-lang3:' + commonsLang3Ver
     compile 'com.google.guava:guava:' + guavaVer
     compile 'joda-time:joda-time:' + jodaVer
     compile 'commons-codec:commons-codec:' + commonsCodecVer
     compile 'org.apache.shiro:shiro-core:' + shiroVer
     compile 'org.bouncycastle:bcprov-jdk15on:' + bcVer
     compile 'org.bouncycastle:bcpkix-jdk15on:' + bcVer
+    compile 'com.amazonaws:aws-java-sdk-dynamodb:' + awsVer
     testCompile 'junit:junit:' + junitVer
     testRuntime 'ch.qos.logback:logback-classic:' + logbackVer
     testRuntime 'ch.qos.logback:logback-core:' + logbackVer
