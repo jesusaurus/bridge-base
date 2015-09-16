@@ -56,7 +56,7 @@ public class DynamoTableMapperTest {
 
     @Test
     public void testGetAttributeName() throws Exception {
-        DynamoTableMapper mapper = DynamoTestUtils.MAPPER;
+        AnnotationBasedTableCreator mapper = DynamoTestUtils.MAPPER;
         Method method = TestHealthDataRecord.class.getMethod("getStartDate");
         assertEquals("startDate", mapper.getAttributeName(method));
         method = TestHealthDataRecord.class.getMethod("hashCode");
@@ -65,7 +65,7 @@ public class DynamoTableMapperTest {
 
     @Test
     public void testGetAttributeType() throws Exception {
-        DynamoTableMapper mapper = DynamoTestUtils.MAPPER;
+        AnnotationBasedTableCreator mapper = DynamoTestUtils.MAPPER;
         Method method = TestHealthDataRecord.class.getMethod("getStartDate");
         assertEquals(ScalarAttributeType.N, mapper.getAttributeType(method));
         method = TestHealthDataRecord.class.getMethod("getData");

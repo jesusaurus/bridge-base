@@ -42,7 +42,7 @@ import com.google.common.reflect.ClassPath.ClassInfo;
  * Scans a package for types that are annotated as DynamoDBTable and maps
  * them to TableDescription objects.
  */
-public class DynamoTableMapper {
+public class AnnotationBasedTableCreator {
 
     public static final long DEFAULT_READ_CAPACITY = 10;
     public static final long DEFAULT_WRITE_CAPACITY = 10;
@@ -54,7 +54,7 @@ public class DynamoTableMapper {
      * @param tablePackage  The package to scan.
      * @param config  The config whose user and environment will become part of the table name.
      */
-    public DynamoTableMapper(String tablePackage, Config config) {
+    public AnnotationBasedTableCreator(String tablePackage, Config config) {
         this.tablePackage = tablePackage;
         this.config = config;
     }

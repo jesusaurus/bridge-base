@@ -34,7 +34,7 @@ public final class DynamoTestUtils {
         }
     };
 
-    static final DynamoTableMapper MAPPER = new DynamoTableMapper(DynamoTestUtils.PACKAGE, DynamoTestUtils.CONFIG);
+    static final AnnotationBasedTableCreator MAPPER = new AnnotationBasedTableCreator(DynamoTestUtils.PACKAGE, DynamoTestUtils.CONFIG);
 
     /**
      * Finds the first table that matches the supplied partial name.
