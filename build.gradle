@@ -29,7 +29,9 @@ dependencies {
     compile 'org.bouncycastle:bcprov-jdk15on:' + bcVer
     compile 'org.bouncycastle:bcpkix-jdk15on:' + bcVer
     compile 'com.amazonaws:aws-java-sdk-dynamodb:' + awsVer
+    compile 'redis.clients:jedis:' + redisVer
     testCompile 'junit:junit:' + junitVer
+    testCompile 'org.mockito:mockito-core:' + mockitoVer
     testRuntime 'ch.qos.logback:logback-classic:' + logbackVer
     testRuntime 'ch.qos.logback:logback-core:' + logbackVer
 }
