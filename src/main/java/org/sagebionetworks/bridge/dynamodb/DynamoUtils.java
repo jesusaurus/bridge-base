@@ -73,26 +73,29 @@ public final class DynamoUtils {
 
     public static CreateTableRequest getCreateTableRequest(final TableDescription table) {
 
-        CreateTableRequest request = new CreateTableRequest().withTableName(table.getTableName())
-                        .withKeySchema(table.getKeySchema()).withAttributeDefinitions(table.getAttributeDefinitions());
+        checkNotNull(table);
+
+        final CreateTableRequest request = new CreateTableRequest()
+                .withTableName(table.getTableName())
+                .withKeySchema(table.getKeySchema())
+                .withAttributeDefinitions(table.getAttributeDefinitions());
 
         // ProvisionedThroughputDescription -> ProvisionedThroughput
-        ProvisionedThroughput throughput = new ProvisionedThroughput(table.getProvisionedThroughput()
-                        .getReadCapacityUnits(), table.getProvisionedThroughput().getWriteCapacityUnits());
+        final ProvisionedThroughput throughput = new ProvisionedThroughput(
+                table.getProvisionedThroughput().getReadCapacityUnits(),
+                table.getProvisionedThroughput().getWriteCapacityUnits());
         request.setProvisionedThroughput(throughput);
 
         // GlobalSecondaryIndexDescription -> GlobalSecondaryIndex
-        List<GlobalSecondaryIndex> globalIndices = new ArrayList<>();
-        List<GlobalSecondaryIndexDescription> globalIndexDescs = table.getGlobalSecondaryIndexes();
-        for (GlobalSecondaryIndexDescription globalIndexDesc : globalIndexDescs) {
-            GlobalSecondaryIndex globalIndex = new GlobalSecondaryIndex()
-                            .withIndexName(globalIndexDesc.getIndexName())
-                            .withKeySchema(globalIndexDesc.getKeySchema())
-                            .withProjection(globalIndexDesc.getProjection())
-                            .withProvisionedThroughput(
-                                            new ProvisionedThroughput(globalIndexDesc.getProvisionedThroughput()
-                                                            .getReadCapacityUnits(), globalIndexDesc
-                                                            .getProvisionedThroughput().getWriteCapacityUnits()));
+        final List<GlobalSecondaryIndex> globalIndices = new ArrayList<>();
+        for (GlobalSecondaryIndexDescription globalIndexDesc : table.getGlobalSecondaryIndexes()) {
+            final GlobalSecondaryIndex globalIndex = new GlobalSecondaryIndex()
+                    .withIndexName(globalIndexDesc.getIndexName())
+                    .withKeySchema(globalIndexDesc.getKeySchema())
+                    .withProjection(globalIndexDesc.getProjection())
+                    .withProvisionedThroughput(new ProvisionedThroughput(
+                            globalIndexDesc.getProvisionedThroughput().getReadCapacityUnits(),
+                            globalIndexDesc.getProvisionedThroughput().getWriteCapacityUnits()));
             globalIndices.add(globalIndex);
         }
         if (globalIndices.size() > 0) {
@@ -100,12 +103,12 @@ public final class DynamoUtils {
         }
 
         // LocalSecondaryIndexDescription -> LocalSecondaryIndex
-        List<LocalSecondaryIndex> localIndices = new ArrayList<>();
-        List<LocalSecondaryIndexDescription> localIndexDescs = table.getLocalSecondaryIndexes();
-        for (LocalSecondaryIndexDescription localIndexDesc : localIndexDescs) {
-            LocalSecondaryIndex localIndex = new LocalSecondaryIndex().withIndexName(localIndexDesc.getIndexName())
-                            .withKeySchema(localIndexDesc.getKeySchema())
-                            .withProjection(localIndexDesc.getProjection());
+        final List<LocalSecondaryIndex> localIndices = new ArrayList<>();
+        for (LocalSecondaryIndexDescription localIndexDesc : table.getLocalSecondaryIndexes()) {
+            final LocalSecondaryIndex localIndex = new LocalSecondaryIndex()
+                    .withIndexName(localIndexDesc.getIndexName())
+                    .withKeySchema(localIndexDesc.getKeySchema())
+                    .withProjection(localIndexDesc.getProjection());
             localIndices.add(localIndex);
         }
         if (localIndices.size() > 0) {
@@ -116,7 +119,8 @@ public final class DynamoUtils {
     }
 
     /**
-     * Compares hash key, range key of the two tables. Throws an exception if there is difference.
+     * Compares if the two tables are of the same name. Also compares hash key, range key of the two tables.
+     * Throws an exception if there is difference.
      */
     public static void compareSchema(final TableDescription table1, final TableDescription table2) {
         if (table1.getTableName().equals(table2.getTableName())) {
@@ -124,6 +128,9 @@ public final class DynamoUtils {
         }
     }
 
+    /**
+     * Compares hash key, range key of the two tables. Throws an exception if there is difference.
+     */
     public static void compareKeySchema(final TableDescription table1, final TableDescription table2) {
         List<KeySchemaElement> keySchema1 = table1.getKeySchema();
         List<KeySchemaElement> keySchema2 = table2.getKeySchema();
