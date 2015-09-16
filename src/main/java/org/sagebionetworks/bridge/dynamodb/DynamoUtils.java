@@ -16,13 +16,18 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig.TableNameOverride;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
 import com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndex;
 import com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
+import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndex;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.amazonaws.services.dynamodbv2.model.TableStatus;
 
 public final class DynamoUtils {
 
@@ -154,6 +159,60 @@ public final class DynamoUtils {
                 throw new KeySchemaMismatchException("Different key schema for key " + ele2.getAttributeName());
             }
         }
+    }
+
+    // TODO: Add timeout
+    public static void waitForActive(final AmazonDynamoDB dynamo, final String tableName) {
+        checkNotNull(dynamo);
+        checkNotNull(tableName);
+        final DescribeTableRequest request = new DescribeTableRequest(tableName);
+        TableDescription table = dynamo.describeTable(request).getTable();
+        while (!TableStatus.ACTIVE.name().equalsIgnoreCase(table.getTableStatus())) {
+            try {
+                Thread.sleep(100L);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Shouldn't be interrupted.", e);
+            }
+            table = dynamo.describeTable(request).getTable();
+        }
+    }
+
+    // TODO: Add timeout
+    public static void waitForDelete(final AmazonDynamoDB dynamo, final String tableName) {
+        checkNotNull(dynamo);
+        checkNotNull(tableName);
+        final DescribeTableRequest request = new DescribeTableRequest(tableName);
+        while (true) {
+            try {
+                Thread.sleep(100L);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Shouldn't be interrupted.", e);
+            }
+            try {
+                dynamo.describeTable(request);
+            } catch (ResourceNotFoundException e) {
+                return;
+            }
+        }
+    }
+
+    public static Map<String, TableDescription> getExistingTables(final AmazonDynamoDB dynamo) {
+        checkNotNull(dynamo);
+        final Map<String, TableDescription> existingTables = new HashMap<>();
+        String lastTableName = null;
+        ListTablesResult listTablesResult = dynamo.listTables();
+        do {
+            for (final String tableName : listTablesResult.getTableNames()) {
+                DescribeTableResult describeResult = dynamo.describeTable(new DescribeTableRequest(tableName));
+                TableDescription table = describeResult.getTable();
+                existingTables.put(tableName, table);
+            }
+            lastTableName = listTablesResult.getLastEvaluatedTableName();
+            if (lastTableName != null) {
+                listTablesResult = dynamo.listTables(lastTableName);
+            }
+        } while (lastTableName != null);
+        return existingTables;
     }
 
     private DynamoUtils() {}
