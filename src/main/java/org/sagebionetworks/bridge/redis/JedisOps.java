@@ -1,5 +1,7 @@
 package org.sagebionetworks.bridge.redis;
 
+import java.util.Set;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -144,6 +146,65 @@ public class JedisOps {
         }.execute();
     }
 
+    // Sorted set
+    /**
+     * Adds a member with a score to the sorted set. Time complexity is O(log(N)).
+     */
+    public Long zadd(final String key, final double score, final String member) {
+        return new AbstractJedisTemplate<Long>() {
+            @Override
+            Long execute(Jedis jedis) {
+                return jedis.zadd(key, score, member);
+            }
+        }.execute();
+    }
+
+    /**
+     * Returns all the elements in the sorted set at key with a score between
+     * min and max (including elements with score equal to min or max). Time
+     * complexity is O(log(N)+M) with N being the number of elements in the
+     * sorted set and M the number of elements being returned.
+     */
+    public Set<String> zrangeByScore(final String key, final Double min, final Double max) {
+        return new AbstractJedisTemplate<Set<String>>() {
+            @Override
+            Set<String> execute(Jedis jedis) {
+                return jedis.zrangeByScore(key, min, max);
+            }
+        }.execute();
+    }
+
+    /**
+     * Returns the rank of member in the sorted set stored at key.
+     * The rank (or index) is 0-based. Time complexity is O(log(N)).
+     *
+     * @return 0-based rank or Double.NaN if the member does not exist.
+     */
+    public Long zrank(final String key, final String member) {
+        return new AbstractJedisTemplate<Long>() {
+            @Override
+            Long execute(Jedis jedis) {
+                return jedis.zrank(key, member);
+            }
+        }.execute();
+    }
+
+    /**
+     * Returns the score of the member in the sorted set at key. Time
+     * complexity is O(1).
+     *
+     * @return the score of the member or Double.NaN if the member does not exist.
+     */
+    public Double zscore(final String key, final String member) {
+        return new AbstractJedisTemplate<Double>() {
+            @Override
+            Double execute(Jedis jedis) {
+                return jedis.zscore(key, member);
+            }
+        }.execute();
+    }
+
+    // Transaction
     /**
      * Starts a transaction with the optional list of keys to watch.
      *
