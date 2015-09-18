@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.sagebionetworks.bridge.config.Config;
+import org.sagebionetworks.bridge.config.Environment;
+import org.sagebionetworks.bridge.dynamodb.test.TestHealthDataRecord;
 
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
@@ -20,6 +23,36 @@ import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 
 public class DynamoUtilsTest {
+
+    @Test
+    public void testTableName() {
+        final Config config = new Config() {
+            @Override
+            public String getUser() {
+                return "testTableName";
+            }
+            @Override
+            public Environment getEnvironment() {
+                return Environment.LOCAL;
+            }
+            @Override
+            public String get(String key) {
+                return null;
+            }
+            @Override
+            public int getInt(String key) {
+                return 0;
+            }
+            @Override
+            public List<String> getList(String key) {
+                return null;
+            }
+        };
+        final String fqTableName = DynamoUtils.getFullyQualifiedTableName(TestHealthDataRecord.class, config);
+        assertEquals("local-testTableName-TestHealthDataRecord", fqTableName);
+        final String simpleTableName = DynamoUtils.getSimpleTableName(fqTableName, config);
+        assertEquals("TestHealthDataRecord", simpleTableName);
+    }
 
     @Test
     public void testGetCreateTableRequest() {
