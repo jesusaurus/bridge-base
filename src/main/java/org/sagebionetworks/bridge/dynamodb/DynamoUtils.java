@@ -57,6 +57,15 @@ public final class DynamoUtils {
     /**
      * Given a class annotated as DynamoDBTable, gets the fully qualified table name.
      */
+    public static String getFullyQualifiedTableName(final String simpleTableName, final Config config) {
+        checkNotNull(simpleTableName);
+        checkNotNull(config);
+        return getTableNamePrefix(config) + simpleTableName;
+    }
+
+    /**
+     * Given a class annotated as DynamoDBTable, gets the fully qualified table name.
+     */
     public static String getSimpleTableName(final String fullyQualifiedTableName, final Config config) {
         checkNotNull(fullyQualifiedTableName);
         checkNotNull(config);

@@ -52,6 +52,7 @@ public class DynamoUtilsTest {
         assertEquals("local-testTableName-TestHealthDataRecord", fqTableName);
         final String simpleTableName = DynamoUtils.getSimpleTableName(fqTableName, config);
         assertEquals("TestHealthDataRecord", simpleTableName);
+        assertEquals(fqTableName, DynamoUtils.getFullyQualifiedTableName(simpleTableName, config));
     }
 
     @Test
