@@ -177,7 +177,7 @@ public class AnnotationBasedTableCreator {
                     attributes.put(attrName, attribute);
                 }
             }
-            final String tableName = DynamoUtils.getTableName(clazz, config);
+            final String tableName = DynamoUtils.getFullyQualifiedTableName(clazz, config);
             // Create the table description
             final TableDescription table = new TableDescription()
                 .withTableName(tableName)

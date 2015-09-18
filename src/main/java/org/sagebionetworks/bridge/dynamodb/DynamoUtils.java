@@ -31,6 +31,12 @@ import com.amazonaws.services.dynamodbv2.model.TableStatus;
 
 public final class DynamoUtils {
 
+    private static final String TABLE_NAME_DELIMITER = "-";
+
+    /**
+     * Given a class annotated as DynamoDBTable, gets the name override responsible
+     * for generating the fully qualified table name. 
+     */
     public static TableNameOverride getTableNameOverride(final Class<?> dynamoTable, final Config config) {
         checkNotNull(dynamoTable);
         checkNotNull(config);
@@ -38,12 +44,41 @@ public final class DynamoUtils {
         if (table == null) {
             throw new IllegalArgumentException("Missing DynamoDBTable annotation for " + dynamoTable.getName());
         }
-        final Environment env = config.getEnvironment();
-        return new TableNameOverride(env.name().toLowerCase() + "-" + config.getUser() + "-" + table.tableName());
+        return new TableNameOverride(getTableNamePrefix(config) + table.tableName());
     }
 
-    public static String getTableName(final Class<?> dynamoTable, final Config config) {
+    /**
+     * Given a class annotated as DynamoDBTable, gets the fully qualified table name.
+     */
+    public static String getFullyQualifiedTableName(final Class<?> dynamoTable, final Config config) {
         return getTableNameOverride(dynamoTable, config).getTableName();
+    }
+
+    /**
+     * Given a class annotated as DynamoDBTable, gets the fully qualified table name.
+     */
+    public static String getFullyQualifiedTableName(final String simpleTableName, final Config config) {
+        checkNotNull(simpleTableName);
+        checkNotNull(config);
+        return getTableNamePrefix(config) + simpleTableName;
+    }
+
+    /**
+     * Given a simple table name, gets the fully qualified table name.
+     */
+    public static String getSimpleTableName(final String fullyQualifiedTableName, final Config config) {
+        checkNotNull(fullyQualifiedTableName);
+        checkNotNull(config);
+        final String prefix = getTableNamePrefix(config);
+        if (!fullyQualifiedTableName.startsWith(prefix)) {
+            throw new IllegalArgumentException(fullyQualifiedTableName + " is not a fully qualified table name.");
+        }
+        return fullyQualifiedTableName.substring(prefix.length());
+    }
+
+    private static String getTableNamePrefix(final Config config) {
+        final Environment env = config.getEnvironment();
+        return env.name().toLowerCase() + TABLE_NAME_DELIMITER + config.getUser() + TABLE_NAME_DELIMITER;
     }
 
     /**

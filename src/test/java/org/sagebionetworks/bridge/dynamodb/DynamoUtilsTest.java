@@ -2,6 +2,8 @@ package org.sagebionetworks.bridge.dynamodb;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.sagebionetworks.bridge.config.Config;
+import org.sagebionetworks.bridge.config.Environment;
+import org.sagebionetworks.bridge.dynamodb.test.TestHealthDataRecord;
 
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
@@ -20,6 +25,18 @@ import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 
 public class DynamoUtilsTest {
+
+    @Test
+    public void testTableName() {
+        final Config config = mock(Config.class);
+        when(config.getUser()).thenReturn("testTableName");
+        when(config.getEnvironment()).thenReturn(Environment.LOCAL);
+        final String fqTableName = DynamoUtils.getFullyQualifiedTableName(TestHealthDataRecord.class, config);
+        assertEquals("local-testTableName-TestHealthDataRecord", fqTableName);
+        final String simpleTableName = DynamoUtils.getSimpleTableName(fqTableName, config);
+        assertEquals("TestHealthDataRecord", simpleTableName);
+        assertEquals(fqTableName, DynamoUtils.getFullyQualifiedTableName(simpleTableName, config));
+    }
 
     @Test
     public void testGetCreateTableRequest() {
