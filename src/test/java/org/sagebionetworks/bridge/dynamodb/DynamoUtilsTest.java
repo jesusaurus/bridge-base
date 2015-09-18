@@ -2,6 +2,8 @@ package org.sagebionetworks.bridge.dynamodb;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,28 +28,9 @@ public class DynamoUtilsTest {
 
     @Test
     public void testTableName() {
-        final Config config = new Config() {
-            @Override
-            public String getUser() {
-                return "testTableName";
-            }
-            @Override
-            public Environment getEnvironment() {
-                return Environment.LOCAL;
-            }
-            @Override
-            public String get(String key) {
-                return null;
-            }
-            @Override
-            public int getInt(String key) {
-                return 0;
-            }
-            @Override
-            public List<String> getList(String key) {
-                return null;
-            }
-        };
+        final Config config = mock(Config.class);
+        when(config.getUser()).thenReturn("testTableName");
+        when(config.getEnvironment()).thenReturn(Environment.LOCAL);
         final String fqTableName = DynamoUtils.getFullyQualifiedTableName(TestHealthDataRecord.class, config);
         assertEquals("local-testTableName-TestHealthDataRecord", fqTableName);
         final String simpleTableName = DynamoUtils.getSimpleTableName(fqTableName, config);
