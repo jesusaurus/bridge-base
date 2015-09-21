@@ -25,6 +25,54 @@ public class JedisOpsTest {
     }
 
     @Test
+    public void testExpire() {
+        ops.expire("key", 10);
+        verify(jedis, times(1)).expire("key", 10);
+    }
+
+    @Test
+    public void testSetex() {
+        ops.setex("key", 5, "val");
+        verify(jedis, times(1)).setex("key", 5, "val");
+    }
+
+    @Test
+    public void testSetnx() {
+        ops.setnx("key", "val");
+        verify(jedis, times(1)).setnx("key", "val");
+    }
+
+    @Test
+    public void testGet() {
+        ops.get("key");
+        verify(jedis, times(1)).get("key");
+    }
+
+    @Test
+    public void testDel() {
+        ops.del("key1", "key2");
+        verify(jedis, times(1)).del("key1", "key2");
+    }
+
+    @Test
+    public void testTtl() {
+        ops.ttl("key");
+        verify(jedis, times(1)).ttl("key");
+    }
+
+    @Test
+    public void testIncr() {
+        ops.incr("key");
+        verify(jedis, times(1)).incr("key");
+    }
+
+    @Test
+    public void testDecr() {
+        ops.decr("key");
+        verify(jedis, times(1)).decr("key");
+    }
+
+    @Test
     public void testZadd() {
         ops.zadd("key", 1.1, "member");
         verify(jedis, times(1)).zadd("key", 1.1, "member");
