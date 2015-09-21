@@ -231,6 +231,9 @@ public final class DynamoUtils {
         }
     }
 
+    /**
+     * Gets all the tables, keyed by the fully qualified table name.
+     */
     public static Map<String, TableDescription> getExistingTables(final AmazonDynamoDB dynamo) {
         checkNotNull(dynamo);
         final Map<String, TableDescription> existingTables = new HashMap<>();
@@ -238,7 +241,7 @@ public final class DynamoUtils {
         ListTablesResult listTablesResult = dynamo.listTables();
         do {
             for (final String tableName : listTablesResult.getTableNames()) {
-                DescribeTableResult describeResult = dynamo.describeTable(new DescribeTableRequest(tableName));
+                DescribeTableResult describeResult = dynamo.describeTable(tableName);
                 TableDescription table = describeResult.getTable();
                 existingTables.put(tableName, table);
             }
@@ -248,6 +251,23 @@ public final class DynamoUtils {
             }
         } while (lastTableName != null);
         return existingTables;
+    }
+
+    /**
+     * Gets the tables, keyed by the fully qualified table name, for the current environment and user.
+     */
+    public static Map<String, TableDescription> getExistingTables(final Config config, final AmazonDynamoDB dynamo) {
+        checkNotNull(config);
+        checkNotNull(dynamo);
+        final Map<String, TableDescription> tables = getExistingTables(dynamo);
+        final String prefix = getTableNamePrefix(config);
+        final Map<String, TableDescription> filteredTables = new HashMap<>();
+        for (final Map.Entry<String, TableDescription> table : tables.entrySet()) {
+            if (table.getKey().startsWith(prefix)) {
+                filteredTables.put(table.getKey(), table.getValue());
+            }
+        }
+        return filteredTables;
     }
 
     private DynamoUtils() {}
