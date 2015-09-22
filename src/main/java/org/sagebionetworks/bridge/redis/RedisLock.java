@@ -24,10 +24,19 @@ public class RedisLock implements Lock {
         final String lock = UUID.randomUUID().toString();
         final Long result = ops.setnx(key, lock);
         if (result != 1L) {
-            // When fail to obtain the lock
-            // Force to expire the key if not already set to expire
-            final Long expire = ops.ttl(key);
-            if (expire < 0L || expire > expireInSeconds) {
+            //
+            // Force to expire the lock if not already set to expire.
+            // The intention here is to avoid starvation when the lock is
+            // not available but has no associated expiration. This can
+            // happen when the code crashes after successfully calling setnx()
+            // to acquire the lock but before calling expire().
+            //
+            // According to Redis:
+            // Starting with Redis 2.8 the return value in case of error changed:
+            //    The command returns -2 if the key does not exist.
+            //    The command returns -1 if the key exists but has no associated expire.
+            //
+            if (ops.ttl(key) == -1L) {
                 expire(key, expireInSeconds);
             }
             throw new LockNotAvailableException(key);
@@ -52,6 +61,9 @@ public class RedisLock implements Lock {
     }
 
     private void expire(final String key, final int expireInSeconds) {
-        ops.expire(key, expireInSeconds);
+        final Long result = ops.expire(key, expireInSeconds);
+        if (result != 1L) {
+            throw new RedisException("Failed to expire key " + key + ".");
+        }
     }
 }
