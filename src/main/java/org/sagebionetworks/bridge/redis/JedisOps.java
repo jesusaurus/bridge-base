@@ -5,6 +5,13 @@ import java.util.Set;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+/**
+ * A thin wrapper of <code>Jedis</code>. Provides a template
+ * that obtains a <code>Jedis</code> instance from a pool,
+ * executes a command on the <code>Jedis</code> instance, and
+ * returns the <code>Jedis</code> instance to the pool after
+ * the command execution.
+ */
 public class JedisOps {
 
     private final JedisPool jedisPool;
