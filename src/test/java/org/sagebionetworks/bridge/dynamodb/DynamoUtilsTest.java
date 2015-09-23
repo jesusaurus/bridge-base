@@ -46,7 +46,7 @@ public class DynamoUtilsTest {
     @Test
     public void testGetCreateTableRequest() {
 
-        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables();
+        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);
         TableDescription table = DynamoTestUtils.getTableByName(tables, "TestHealthDataRecord");
         CreateTableRequest request = DynamoUtils.getCreateTableRequest(table);
         assertNotNull(request);
@@ -142,7 +142,7 @@ public class DynamoUtilsTest {
 
     @Test
     public void testCompareSchema() {
-        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables();
+        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);
         TableDescription table1 = tables.get(0);
         TableDescription table2 = copyTableDescription(table1);
         // No exception
@@ -151,7 +151,7 @@ public class DynamoUtilsTest {
 
     @Test(expected = KeySchemaMismatchException.class)
     public void testCompareSchemaDifferentKeys() {
-        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables();
+        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);
         TableDescription table1 = tables.get(0);
         TableDescription table2 = copyTableDescription(table1);
         table2.getKeySchema().get(0).setAttributeName("some fake attr name");

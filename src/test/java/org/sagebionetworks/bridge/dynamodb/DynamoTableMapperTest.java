@@ -14,6 +14,7 @@ import java.util.Set;
 import org.junit.Test;
 import org.sagebionetworks.bridge.config.Environment;
 import org.sagebionetworks.bridge.dynamodb.test.TestHealthDataRecord;
+import org.sagebionetworks.bridge.dynamodb.test.TestTask;
 
 import com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
@@ -23,7 +24,7 @@ public class DynamoTableMapperTest {
 
     @Test
     public void testGetAnnotatedTables() {
-        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables();
+        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);
         assertNotNull(tables);
         assertEquals(2, tables.size());
         Map<String, TableDescription> tableMap = new HashMap<String, TableDescription>();
@@ -44,7 +45,7 @@ public class DynamoTableMapperTest {
 
     @Test
     public void testLoadDynamoTableClasses() {
-        List<Class<?>> classes = DynamoTestUtils.MAPPER.loadDynamoTableClasses();
+        List<Class<?>> classes = DynamoTestUtils.MAPPER.loadDynamoTableClasses(DynamoTestUtils.PACKAGE);
         assertNotNull(classes);
         assertEquals(2, classes.size());
         Set<String> classSet = new HashSet<String>();
@@ -74,7 +75,7 @@ public class DynamoTableMapperTest {
 
     @Test
     public void createsGlobalIndices() {
-        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables();
+        List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(TestTask.class);
         TableDescription table = DynamoTestUtils.getTableByName(tables, "TestTask");
         assertEquals(3, table.getGlobalSecondaryIndexes().size());
 

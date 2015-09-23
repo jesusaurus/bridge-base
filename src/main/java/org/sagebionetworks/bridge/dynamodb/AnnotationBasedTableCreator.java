@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.dynamodb;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -8,6 +9,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,26 +49,35 @@ public class AnnotationBasedTableCreator {
     public static final long DEFAULT_READ_CAPACITY = 10;
     public static final long DEFAULT_WRITE_CAPACITY = 10;
 
-    private final String tablePackage;
     private final Config config;
 
     /**
-     * @param tablePackage  The package to scan.
      * @param config  The config whose user and environment will become part of the table name.
      */
-    public AnnotationBasedTableCreator(String tablePackage, Config config) {
-        this.tablePackage = tablePackage;
+    public AnnotationBasedTableCreator(Config config) {
         this.config = config;
     }
 
-    public List<TableDescription> getTables() {
-        return getAnnotatedTables(loadDynamoTableClasses());
+    /**
+     * @param tablePackage The package to scan for DynamoDBTable annotated types.
+     */
+    public List<TableDescription> getTables(final String tablePackage) {
+        checkNotNull(tablePackage);
+        return getAnnotatedTables(loadDynamoTableClasses(tablePackage));
+    }
+
+    /**
+     * @param tables The list of DynamoDBTable annotated types.
+     */
+    public List<TableDescription> getTables(final Class<?>... tables) {
+        checkNotNull(tables);
+        return getAnnotatedTables(Arrays.asList(tables));
     }
 
     /**
      * Uses reflection to get all the annotated DynamoDBTable.
      */
-    List<Class<?>> loadDynamoTableClasses() {
+    List<Class<?>> loadDynamoTableClasses(final String tablePackage) {
         final List<Class<?>> classes = new ArrayList<>();
         final ClassLoader classLoader = getClass().getClassLoader();
         try {
