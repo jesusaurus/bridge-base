@@ -95,4 +95,10 @@ public class JedisOpsTest {
         ops.zrangeByScore("key", 1.1, 1.2);
         verify(jedis, times(1)).zrangeByScore("key", 1.1, 1.2);
     }
+
+    @Test
+    public void testZrem() {
+        ops.zrem("key", "m1", "m2");
+        verify(jedis, times(1)).zrem("key", "m1", "m2");
+    }
 }
