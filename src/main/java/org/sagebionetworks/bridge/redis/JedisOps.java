@@ -211,6 +211,19 @@ public class JedisOps {
         }.execute();
     }
 
+    /**
+     * Removes the specified members from the sorted set stored at key.
+     * Non existing members are ignored. Time complexity O(M*log(N)).
+     */
+    public Long zrem(final String key, final String... members) {
+        return new AbstractJedisTemplate<Long>() {
+            @Override
+            Long execute(Jedis jedis) {
+                return jedis.zrem(key, members);
+            }
+        }.execute();
+    }
+
     // Transaction
     /**
      * Starts a transaction with the optional list of keys to watch.
