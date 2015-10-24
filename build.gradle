@@ -1,7 +1,6 @@
 group = 'org.sagebionetworks'
 ext.name = 'bridge-base'
-version = '0.1.' + (new Date()).format(
-        'yyyyMMddHHmm', TimeZone.getTimeZone("UTC"))
+version = '0.1.SNAPSHOT'
 
 /*** Java ***/
 
@@ -21,19 +20,52 @@ repositories {
 }
 
 dependencies {
-    compile 'org.apache.commons:commons-lang3:' + commonsLang3Ver
-    compile 'com.google.guava:guava:' + guavaVer
-    compile 'joda-time:joda-time:' + jodaVer
-    compile 'commons-codec:commons-codec:' + commonsCodecVer
-    compile 'org.apache.shiro:shiro-core:' + shiroVer
-    compile 'org.bouncycastle:bcprov-jdk15on:' + bcVer
-    compile 'org.bouncycastle:bcpkix-jdk15on:' + bcVer
     compile 'com.amazonaws:aws-java-sdk-dynamodb:' + awsVer
+    compile 'com.amazonaws:aws-java-sdk-sqs:' + awsVer
+    compile 'com.google.guava:guava:' + guavaVer
+    compile 'com.jcabi:jcabi-aspects:0.22.1'
+    compile 'commons-codec:commons-codec:' + commonsCodecVer
+    compile 'joda-time:joda-time:' + jodaVer
+    compile 'org.apache.commons:commons-lang3:' + commonsLang3Ver
+    compile 'org.apache.shiro:shiro-core:' + shiroVer
+    compile 'org.bouncycastle:bcpkix-jdk15on:' + bcVer
+    compile 'org.bouncycastle:bcprov-jdk15on:' + bcVer
+    compile 'org.mockito:mockito-core:' + mockitoVer
     compile 'redis.clients:jedis:' + redisVer
     testCompile 'junit:junit:' + junitVer
-    testCompile 'org.mockito:mockito-core:' + mockitoVer
+    testCompile 'org.testng:testng:6.1.1'
     testRuntime 'ch.qos.logback:logback-classic:' + logbackVer
     testRuntime 'ch.qos.logback:logback-core:' + logbackVer
+}
+
+test.useTestNG()
+
+/*** AspectJ settings ***/
+buildscript {
+    repositories {
+        maven {
+            url "https://maven.eveoh.nl/content/repositories/releases"
+        }
+    }
+
+    dependencies {
+        classpath "nl.eveoh:gradle-aspectj:1.6"
+    }
+}
+
+project.ext {
+    aspectjVersion = '1.8.7'
+}
+
+apply plugin: 'aspectj'
+
+dependencies {
+    aspectpath 'com.jcabi:jcabi-aspects:0.22.1'
+    testAspectpath 'com.jcabi:jcabi-aspects:0.22.1'
+}
+
+compileAspect {
+    xlint = 'warning'
 }
 
 /*** IDE ***/
