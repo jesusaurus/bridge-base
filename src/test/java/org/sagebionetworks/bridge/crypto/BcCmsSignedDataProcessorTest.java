@@ -1,7 +1,7 @@
 package org.sagebionetworks.bridge.crypto;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.fail;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -16,10 +16,9 @@ import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationStore;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.util.Store;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class BcCmsSignedDataProcessorTest {
-
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void test() throws Exception {

@@ -1,8 +1,8 @@
 package org.sagebionetworks.bridge.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -10,20 +10,20 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 public class PropertiesConfigTest {
 
     private Path configFile;
 
-    @Before
+    @BeforeMethod
     public void before() throws URISyntaxException {
         configFile = Paths.get(getClass().getClassLoader().getResource("conf/bridge.conf").getPath());
     }
 
-    @After
+    @AfterMethod
     public void after() {
         System.clearProperty(PropertiesConfig.USER_KEY);
         System.clearProperty(PropertiesConfig.ENV_KEY);
@@ -55,7 +55,7 @@ public class PropertiesConfigTest {
         assertEquals(PropertiesConfig.DEFAULT_ENV, config.getEnvironment());
     }
 
-    @Test(expected=InvalidEnvironmentException.class)
+    @Test(expectedExceptions=InvalidEnvironmentException.class)
     public void testGetInvalidEnvironment() throws IOException {
         System.setProperty(PropertiesConfig.ENV_KEY, "InvalidEnvironment");
         new PropertiesConfig(configFile);

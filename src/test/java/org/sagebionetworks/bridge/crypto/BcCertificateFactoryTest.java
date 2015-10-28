@@ -1,16 +1,15 @@
 package org.sagebionetworks.bridge.crypto;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 
 import org.bouncycastle.asn1.x509.Extension;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class BcCertificateFactoryTest {
-
     @Test
     public void test() throws Exception {
 

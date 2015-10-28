@@ -1,9 +1,9 @@
 package org.sagebionetworks.bridge.crypto;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class AesGcmEncryptorTest {
 
@@ -31,23 +31,23 @@ public class AesGcmEncryptorTest {
     @Test
     public void testEncryptRandomized() {
         AesGcmEncryptor encryptor = new AesGcmEncryptor("QDA7jti2QrJ5gzbkdTn+rcckcDJzFZ4KwgVjlMhpLUw=");
-        assertFalse("Encryption should be randomized.", encryptor.encrypt("Encrypt me").equals(encryptor.encrypt("Encrypt me")));
+        assertFalse(encryptor.encrypt("Encrypt me").equals(encryptor.encrypt("Encrypt me")), "Encryption should be randomized.");
     }
 
     @Test
     public void testDecryptDeterministic() {
         AesGcmEncryptor encryptor1 = new AesGcmEncryptor("jVoKFK0fxGPdDsWKZHSxIGR0P/QDUUEGpnetUf2jtDs=");
         AesGcmEncryptor encryptor2 = new AesGcmEncryptor("jVoKFK0fxGPdDsWKZHSxIGR0P/QDUUEGpnetUf2jtDs=");
-        assertEquals("Decryption should be deterministic.", "Encrypt me", encryptor2.decrypt(encryptor1.encrypt("Encrypt me")));
+        assertEquals(encryptor2.decrypt(encryptor1.encrypt("Encrypt me")), "Encrypt me", "Decryption should be deterministic.");
     }
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test(expectedExceptions=IllegalArgumentException.class)
     public void testNullEncrypt() {
         AesGcmEncryptor encryptor = new AesGcmEncryptor();
         encryptor.encrypt(null);
     }
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test(expectedExceptions=IllegalArgumentException.class)
     public void testNullDecrypt() {
         AesGcmEncryptor encryptor = new AesGcmEncryptor();
         encryptor.decrypt(null);

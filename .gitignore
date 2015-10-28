@@ -14,6 +14,5 @@ gradle-app.setting
 bin/
 
 # IntelliJ
-develop.iml
-develop.ipr
-develop.iws
+.idea
+*.iml

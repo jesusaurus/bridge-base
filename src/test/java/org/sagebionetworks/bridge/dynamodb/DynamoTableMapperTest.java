@@ -1,8 +1,8 @@
 package org.sagebionetworks.bridge.dynamodb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -11,17 +11,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Test;
+import com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndexDescription;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import org.testng.annotations.Test;
+
 import org.sagebionetworks.bridge.config.Environment;
 import org.sagebionetworks.bridge.dynamodb.test.TestHealthDataRecord;
 import org.sagebionetworks.bridge.dynamodb.test.TestTask;
 
-import com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndexDescription;
-import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
-
 public class DynamoTableMapperTest {
-
     @Test
     public void testGetAnnotatedTables() {
         List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);

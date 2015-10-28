@@ -5,14 +5,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
 import org.mockito.InOrder;
-
+import org.testng.annotations.Test;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
 
 public class JedisTransactionTest {
-
     @Test
     public void test() {
         Transaction transaction = mock(Transaction.class);

@@ -1,23 +1,22 @@
 package org.sagebionetworks.bridge.crypto;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 public class BcCmsEncryptorTest {
-
     private CmsEncryptor encryptor;
     private CmsEncryptor decryptor;
 
-    @Before
+    @BeforeMethod
     public void before() throws Exception {
         KeyPair keyPair = KeyPairFactory.newRsa2048();
         CertificateFactory certFactory = new BcCertificateFactory();
