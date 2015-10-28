@@ -11,8 +11,12 @@ import org.testng.annotations.Test;
 public class UploadSchemaTest {
     private static final String DUMMY_FIELD_DEF_LIST_JSON = "[\n" +
             "   {\n" +
-            "       \"name\":\"dummy-field\",\n" +
+            "       \"name\":\"foo-field\",\n" +
             "       \"type\":\"STRING\"\n" +
+            "   },\n" +
+            "   {\n" +
+            "       \"name\":\"bar-field\",\n" +
+            "       \"type\":\"INT\"\n" +
             "   }\n" +
             "]";
 
@@ -55,12 +59,14 @@ public class UploadSchemaTest {
         assertEquals(schema.getKey().toString(), "test-study-ddb-schema-v13");
 
         List<String> fieldNameList = schema.getFieldNameList();
-        assertEquals(fieldNameList.size(), 1);
-        assertEquals(fieldNameList.get(0), "dummy-field");
+        assertEquals(fieldNameList.size(), 2);
+        assertEquals(fieldNameList.get(0), "foo-field");
+        assertEquals(fieldNameList.get(1), "bar-field");
 
         Map<String, String> fieldTypeMap = schema.getFieldTypeMap();
-        assertEquals(fieldTypeMap.size(), 1);
-        assertEquals(fieldTypeMap.get("dummy-field"), "STRING");
+        assertEquals(fieldTypeMap.size(), 2);
+        assertEquals(fieldTypeMap.get("foo-field"), "STRING");
+        assertEquals(fieldTypeMap.get("bar-field"), "INT");
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)

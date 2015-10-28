@@ -29,8 +29,8 @@ public class SqsHelper {
      * @return an SQS message, or null if no messages are available
      */
     public Message poll(String sqsQueueUrl) {
-        ReceiveMessageResult sqsResult = sqsClient.receiveMessage(new ReceiveMessageRequest()
-                .withQueueUrl(sqsQueueUrl).withMaxNumberOfMessages(1).withWaitTimeSeconds(20));
+        ReceiveMessageResult sqsResult = sqsClient.receiveMessage(new ReceiveMessageRequest().withQueueUrl(sqsQueueUrl)
+                .withMaxNumberOfMessages(1).withWaitTimeSeconds(20));
 
         List<Message> sqsMessageList = sqsResult.getMessages();
         int numMessages = sqsMessageList.size();
@@ -38,8 +38,7 @@ public class SqsHelper {
             // Poll returned no messages. This is normal. Return null to signal no message.
             return null;
         } else if (numMessages > 1) {
-            LOG.warn("Asked SQS for at most 1 message, but got " + numMessages +
-                    ", ignoring all but the first");
+            LOG.warn("Asked SQS for at most 1 message, but got " + numMessages + ", ignoring all but the first");
         }
 
         Message sqsMessage = sqsMessageList.get(0);

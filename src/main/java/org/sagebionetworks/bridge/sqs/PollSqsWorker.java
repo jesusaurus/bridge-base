@@ -4,7 +4,10 @@ import com.amazonaws.services.sqs.model.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO doc
+/**
+ * This class encapsulates the common worker logic that polls SQS for messages, passes the messages to a callback, and
+ * then deletes the message. This can be configured for a single SQS queue URL with and a sleep time between each loop.
+ */
 public class PollSqsWorker implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(PollSqsWorker.class);
 
@@ -13,7 +16,7 @@ public class PollSqsWorker implements Runnable {
     private int sleepTimeMillis;
     private SqsHelper sqsHelper;
 
-    /** Callback to call when the poll worke recieves a message. */
+    /** Callback to call when the poll worker recieves a message. */
     public final void setCallback(PollSqsCallback callback) {
         this.callback = callback;
     }
@@ -33,6 +36,7 @@ public class PollSqsWorker implements Runnable {
         this.sqsHelper = sqsHelper;
     }
 
+    /** Call this to kick off the worker thread. Or schedule this with an Executor. */
     @Override
     public void run() {
         while (shouldKeepRunning()) {
@@ -55,7 +59,12 @@ public class PollSqsWorker implements Runnable {
                     // No messages yet. Loop around again.
                     continue;
                 }
+
                 callback.callback(sqsMessage.getBody());
+
+                // If the callback doesn't throw, this means it's successfully processed the message, and we should
+                // delete it from SQS to prevent re-processing the message.
+                sqsHelper.deleteMessage(queueUrl, sqsMessage.getReceiptHandle());
             } catch (Exception ex) {
                 LOG.error("PollSqsWorker exception: " + ex.getMessage(), ex);
             } catch (Error err) {

@@ -2,9 +2,15 @@ package org.sagebionetworks.bridge.schema;
 
 import static org.testng.Assert.assertEquals;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.testng.annotations.Test;
 
 public class UploadSchemaKeyTest {
+    @Test
+    public void equalsVerifier() {
+        EqualsVerifier.forClass(UploadSchemaKey.class).allFieldsShouldBeUsed().verify();
+    }
+
     @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*studyId.*")
     public void nullStudyId() {
         new UploadSchemaKey.Builder().withSchemaId("test-schema").withRevision(42).build();
@@ -15,6 +21,11 @@ public class UploadSchemaKeyTest {
         new UploadSchemaKey.Builder().withStudyId("").withSchemaId("test-schema").withRevision(42).build();
     }
 
+    @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*studyId.*")
+    public void blankStudyId() {
+        new UploadSchemaKey.Builder().withStudyId("   ").withSchemaId("test-schema").withRevision(42).build();
+    }
+
     @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*schemaId.*")
     public void nullSchemaId() {
         new UploadSchemaKey.Builder().withStudyId("test-study").withRevision(42).build();
@@ -23,6 +34,11 @@ public class UploadSchemaKeyTest {
     @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*schemaId.*")
     public void emptySchemaId() {
         new UploadSchemaKey.Builder().withStudyId("test-study").withSchemaId("").withRevision(42).build();
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*schemaId.*")
+    public void blankSchemaId() {
+        new UploadSchemaKey.Builder().withStudyId("test-study").withSchemaId("   ").withRevision(42).build();
     }
 
     @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*revision.*")

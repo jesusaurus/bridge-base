@@ -1,12 +1,11 @@
 package org.sagebionetworks.bridge.retry;
 
-
-import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
 
 import java.util.concurrent.TimeUnit;
 
 import com.jcabi.aspects.RetryOnFailure;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 // Basic test to test we properly integrated retry library.
 public class RetryTest {

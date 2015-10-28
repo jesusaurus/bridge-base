@@ -1,11 +1,11 @@
 package org.sagebionetworks.bridge.sqs;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertSame;
 
 import java.util.List;
 
@@ -13,13 +13,13 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.testng.annotations.Test;
 
 public class SqsHelperTest {
     @Test
     public void testPoll() {
-        // mock sqs client - first test case returns no messages, then 1 message, then 3 messages
+        // mock sqs client - first test case returns no messages, then 1 message
         ReceiveMessageResult firstSqsResult = new ReceiveMessageResult().withMessages();
 
         Message secondMessage = new Message();

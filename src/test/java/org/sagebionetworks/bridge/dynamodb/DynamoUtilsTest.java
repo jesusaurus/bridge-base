@@ -1,21 +1,16 @@
 package org.sagebionetworks.bridge.dynamodb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertSame;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.junit.Test;
-import org.sagebionetworks.bridge.config.Config;
-import org.sagebionetworks.bridge.config.Environment;
-import org.sagebionetworks.bridge.dynamodb.test.TestHealthDataRecord;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
@@ -28,9 +23,13 @@ import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndex;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import org.testng.annotations.Test;
+
+import org.sagebionetworks.bridge.config.Config;
+import org.sagebionetworks.bridge.config.Environment;
+import org.sagebionetworks.bridge.dynamodb.test.TestHealthDataRecord;
 
 public class DynamoUtilsTest {
-
     @Test
     public void testTableName() {
         final Config config = mock(Config.class);
@@ -149,7 +148,7 @@ public class DynamoUtilsTest {
         DynamoUtils.compareSchema(table1, table2);
     }
 
-    @Test(expected = KeySchemaMismatchException.class)
+    @Test(expectedExceptions = KeySchemaMismatchException.class)
     public void testCompareSchemaDifferentKeys() {
         List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);
         TableDescription table1 = tables.get(0);

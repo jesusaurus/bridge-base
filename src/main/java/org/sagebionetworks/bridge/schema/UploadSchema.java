@@ -18,21 +18,19 @@ import org.sagebionetworks.bridge.json.DefaultObjectMapper;
 /** Represents an upload schema, including key, field names, and field types. */
 public class UploadSchema {
     /** Set of field types that are considered attachments. */
+    @SuppressWarnings("unused")
     public static final Set<String> ATTACHMENT_TYPE_SET = ImmutableSet.of("ATTACHMENT_BLOB", "ATTACHMENT_CSV",
             "ATTACHMENT_JSON_BLOB", "ATTACHMENT_JSON_TABLE");
 
     private final UploadSchemaKey key;
     private final List<String> fieldNameList;
     private final Map<String, String> fieldTypeMap;
-    private final String name;
 
     /** Upload schema constructor. To construct, go through builder or static factory methods. */
-    private UploadSchema(UploadSchemaKey key, List<String> fieldNameList, Map<String, String> fieldTypeMap,
-            String name) {
+    private UploadSchema(UploadSchemaKey key, List<String> fieldNameList, Map<String, String> fieldTypeMap) {
         this.key = key;
         this.fieldNameList = ImmutableList.copyOf(fieldNameList);
         this.fieldTypeMap = ImmutableMap.copyOf(fieldTypeMap);
-        this.name = name;
     }
 
     /**
@@ -93,7 +91,6 @@ public class UploadSchema {
         private UploadSchemaKey key;
         private final List<String> fieldNameList = new ArrayList<>();
         private final Map<String, String> fieldTypeMap = new HashMap<>();
-        private String name;
 
         /** @see UploadSchema#getKey */
         public Builder withKey(UploadSchemaKey key) {
@@ -108,11 +105,6 @@ public class UploadSchema {
             return this;
         }
 
-        public Builder withName(String name) {
-            this.name = name;
-            return this;
-        }
-
         /** Builds an upload schema, validating that the key is specified and that there is at least one field. */
         public UploadSchema build() {
             if (key == null) {
@@ -123,10 +115,7 @@ public class UploadSchema {
                 throw new IllegalStateException("there must be at least one field");
             }
 
-            // TODO doc
-            // Some apps don't use the schema name. For back-compat, don't enforce name.
-
-            return new UploadSchema(key, fieldNameList, fieldTypeMap, name);
+            return new UploadSchema(key, fieldNameList, fieldTypeMap);
         }
     }
 }

@@ -1,9 +1,9 @@
 package org.sagebionetworks.bridge.schema;
 
-import com.google.common.base.Strings;
+import com.google.common.base.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 /** This class represents an upload schema key, with a study ID, schema ID, and revision. */
-// TODO hashcode and equals
 public final class UploadSchemaKey {
     private final String studyId;
     private final String schemaId;
@@ -29,6 +29,27 @@ public final class UploadSchemaKey {
     /** Revision number of the schema. */
     public int getRevision() {
         return revision;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        UploadSchemaKey schemaKey = (UploadSchemaKey) o;
+        return Objects.equal(revision, schemaKey.revision) &&
+                Objects.equal(studyId, schemaKey.studyId) &&
+                Objects.equal(schemaId, schemaKey.schemaId);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(studyId, schemaId, revision);
     }
 
     /**
@@ -66,11 +87,11 @@ public final class UploadSchemaKey {
 
         /** Builds an UploadSchemaKey and validate that all fields are specified and that revision is positive. */
         public UploadSchemaKey build() {
-            if (Strings.isNullOrEmpty(studyId)) {
+            if (StringUtils.isBlank(studyId)) {
                 throw new IllegalStateException("studyId must be specified");
             }
 
-            if (Strings.isNullOrEmpty(schemaId)) {
+            if (StringUtils.isBlank(schemaId)) {
                 throw new IllegalStateException("schemaId must be specified");
             }
 

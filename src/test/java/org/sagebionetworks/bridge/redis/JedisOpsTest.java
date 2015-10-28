@@ -5,9 +5,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -16,7 +15,7 @@ public class JedisOpsTest {
     private Jedis jedis;
     private JedisOps ops;
 
-    @Before
+    @BeforeMethod
     public void before() {
         jedis = mock(Jedis.class);
         JedisPool pool = mock(JedisPool.class);

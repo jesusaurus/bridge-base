@@ -14,7 +14,7 @@ public class DefaultObjectMapper {
     /** Jackson Object Mapper with default settings. */
     public static final ObjectMapper INSTANCE = new ObjectMapper();
 
-    // TODO doc
+    /** Jackson type reference to deserialize a JSON struct as a raw map. */
     public static final TypeReference<Map<String, Object>> TYPE_REF_RAW_MAP =
             new TypeReference<Map<String, Object>>(){};
 }

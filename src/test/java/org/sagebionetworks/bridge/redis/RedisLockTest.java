@@ -1,9 +1,5 @@
 package org.sagebionetworks.bridge.redis;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -12,13 +8,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
-import org.junit.Test;
 import org.mockito.InOrder;
+import org.testng.annotations.Test;
+
 import org.sagebionetworks.bridge.lock.LockNotAvailableException;
 
 public class RedisLockTest {
-
     @Test
     public void testAcquireLock() {
         JedisOps ops = mock(JedisOps.class);
@@ -32,7 +32,7 @@ public class RedisLockTest {
         inOrder.verify(ops, times(1)).expire("key", 10);
     }
 
-    @Test(expected = RedisException.class)
+    @Test(expectedExceptions = RedisException.class)
     public void testAcquireLockWithRedisException() {
         JedisOps ops = mock(JedisOps.class);
         // 1 -- indicates lock acquired
@@ -87,7 +87,7 @@ public class RedisLockTest {
         verify(ops, never()).del("key");
     }
 
-    @Test(expected = RedisException.class)
+    @Test(expectedExceptions = RedisException.class)
     public void testReleaseLockWithRedisException() {
         JedisOps ops = mock(JedisOps.class);
         when(ops.get("key")).thenReturn("lock");
