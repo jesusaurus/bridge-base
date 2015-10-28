@@ -82,6 +82,9 @@ tasks.withType(FindBugs) {
         html.enabled = true
     }
 }
+findbugs {
+    sourceSets = [sourceSets.main]
+}
 
 apply plugin: 'jdepend'
 tasks.withType(JDepend) {
