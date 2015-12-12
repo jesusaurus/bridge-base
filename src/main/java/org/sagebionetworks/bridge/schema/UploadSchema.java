@@ -16,11 +16,13 @@ import com.google.common.collect.ImmutableSet;
 import org.sagebionetworks.bridge.json.DefaultObjectMapper;
 
 /** Represents an upload schema, including key, field names, and field types. */
+// TODO: Consolidate this with BridgePF code.
 public class UploadSchema {
     /** Set of field types that are considered attachments. */
     @SuppressWarnings("unused")
-    public static final Set<String> ATTACHMENT_TYPE_SET = ImmutableSet.of("ATTACHMENT_BLOB", "ATTACHMENT_CSV",
-            "ATTACHMENT_JSON_BLOB", "ATTACHMENT_JSON_TABLE");
+    public static final Set<String> ATTACHMENT_TYPE_SET = ImmutableSet.of(UploadFieldTypes.ATTACHMENT_BLOB,
+            UploadFieldTypes.ATTACHMENT_CSV, UploadFieldTypes.ATTACHMENT_JSON_BLOB,
+            UploadFieldTypes.ATTACHMENT_JSON_TABLE);
 
     private final UploadSchemaKey key;
     private final List<String> fieldNameList;

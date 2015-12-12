@@ -1,9 +1,11 @@
 package org.sagebionetworks.bridge.schema;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 /** This class represents an upload schema key, with a study ID, schema ID, and revision. */
+@JsonDeserialize(builder = UploadSchemaKey.Builder.class)
 public final class UploadSchemaKey {
     private final String studyId;
     private final String schemaId;

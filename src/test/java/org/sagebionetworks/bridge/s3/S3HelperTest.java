@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.s3;
 
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
+import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,7 @@ import java.util.List;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
@@ -27,6 +29,26 @@ import org.testng.annotations.Test;
 public class S3HelperTest {
     // Test strategy is that given a mock input stream from a mock S3 object, the S3Helper can still turn that
     // input stream into a byte array or a string.
+
+    @Test
+    public void downloadS3File() {
+        // Mock S3 client. Setup S3 helper
+        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
+        S3Helper s3Helper = new S3Helper();
+        s3Helper.setS3Client(mockS3Client);
+
+        // execute
+        File mockFile = mock(File.class);
+        s3Helper.downloadS3File("test-bucket", "test-key", mockFile);
+
+        // The inner S3 client does all the work. Validate that we passed args to it correctly.
+        ArgumentCaptor<GetObjectRequest> requestCaptor = ArgumentCaptor.forClass(GetObjectRequest.class);
+        verify(mockS3Client).getObject(requestCaptor.capture(), same(mockFile));
+
+        GetObjectRequest request = requestCaptor.getValue();
+        assertEquals(request.getBucketName(), "test-bucket");
+        assertEquals(request.getKey(), "test-key");
+    }
 
     @Test
     public void generatePresignedUrl() throws Exception {
