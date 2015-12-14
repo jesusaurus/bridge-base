@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
@@ -33,6 +34,23 @@ public class S3Helper {
      */
     public final void setS3Client(AmazonS3Client s3Client) {
         this.s3Client = s3Client;
+    }
+
+    /**
+     * Downloads a file from S3 directly to the specified file.
+     *
+     * @param bucket
+     *         S3 bucket to download from
+     * @param key
+     *         S3 key to download from
+     * @param destinationFile
+     *         file to download to
+     */
+    @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
+            randomize = false)
+    public void downloadS3File(String bucket, String key, File destinationFile) {
+        GetObjectRequest s3Request = new GetObjectRequest(bucket, key);
+        s3Client.getObject(s3Request, destinationFile);
     }
 
     /**
