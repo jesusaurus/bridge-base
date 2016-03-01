@@ -1,6 +1,6 @@
 group = 'org.sagebionetworks'
 ext.name = 'bridge-base'
-version = '1.1'
+version = '1.2'
 
 /*** Java ***/
 
@@ -30,9 +30,9 @@ dependencies {
     compile 'org.apache.shiro:shiro-core:' + shiroVer
     compile 'org.bouncycastle:bcpkix-jdk15on:' + bcVer
     compile 'org.bouncycastle:bcprov-jdk15on:' + bcVer
-    compile 'org.mockito:mockito-core:' + mockitoVer
     compile 'redis.clients:jedis:' + redisVer
     testCompile 'nl.jqno.equalsverifier:equalsverifier:1.7.2'
+    testCompile 'org.mockito:mockito-core:' + mockitoVer
     testCompile 'org.testng:testng:6.1.1'
     testRuntime 'ch.qos.logback:logback-classic:' + logbackVer
     testRuntime 'ch.qos.logback:logback-core:' + logbackVer
