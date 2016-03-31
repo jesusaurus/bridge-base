@@ -1,11 +1,5 @@
 package org.sagebionetworks.bridge.dynamodb;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.datapipeline.model.Field;
-import com.amazonaws.services.datapipeline.model.PipelineObject;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import com.google.common.collect.Lists;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -16,6 +10,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
+
+import com.amazonaws.regions.Region;
+import com.amazonaws.services.datapipeline.model.Field;
+import com.amazonaws.services.datapipeline.model.PipelineObject;
+import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.google.common.collect.Lists;
 
 /**
  * Creates a Data Pipeline for backing up Dynamo DB tables within a region.
@@ -33,8 +33,10 @@ public class DynamoDataPipelineHelper {
      *                     s3://s3Bucket/regionName/tableName/, logs will go in s3://s3Bucket/logs
      * @param localTime    time to begin runnin pipeline
      */
-    public static List<PipelineObject> createPipelineObjects(
-            Region dynamoRegion, Collection<TableDescription> tables, String s3Bucket, LocalTime localTime) {
+    public static List<PipelineObject> createPipelineObjects(Region dynamoRegion,
+                                                             Collection<TableDescription> tables,
+                                                             String s3Bucket,
+                                                             LocalTime localTime) {
         List<PipelineObject> pipelineObjects = Lists.newArrayList();
 
         ZonedDateTime dateTime = ZonedDateTime.of(LocalDate.now(), localTime, ZoneId.systemDefault());
@@ -121,8 +123,10 @@ public class DynamoDataPipelineHelper {
         return new PipelineObject().withName(name).withId(id).withFields(fieldsList);
     }
 
-    static List<PipelineObject> getEMRActivity(
-            TableDescription table, PipelineObject assignedCluster, Region region, String bucket) {
+    static List<PipelineObject> getEMRActivity(TableDescription table,
+                                               PipelineObject assignedCluster,
+                                               Region region,
+                                               String bucket) {
         String tableName = table.getTableName();
         String name = "TableBackupActivity-" + tableName;
         String id = "TableBackupActivity-" + tableName;

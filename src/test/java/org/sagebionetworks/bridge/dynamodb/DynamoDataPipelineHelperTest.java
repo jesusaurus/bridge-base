@@ -1,5 +1,12 @@
 package org.sagebionetworks.bridge.dynamodb;
 
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
+
+import java.util.HashMap;
+import java.util.List;
+
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.datapipeline.model.Field;
@@ -7,11 +14,6 @@ import com.amazonaws.services.datapipeline.model.PipelineObject;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.google.common.collect.Maps;
 import org.testng.annotations.Test;
-
-import java.util.HashMap;
-import java.util.List;
-
-import static org.testng.Assert.*;
 
 /**
  * Created by liujoshua on 3/18/16.
