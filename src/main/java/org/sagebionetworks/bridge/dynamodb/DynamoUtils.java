@@ -7,9 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.bridge.config.Config;
-import org.sagebionetworks.bridge.config.Environment;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
@@ -28,6 +25,8 @@ import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.model.TableStatus;
+import org.sagebionetworks.bridge.config.Config;
+import org.sagebionetworks.bridge.config.Environment;
 
 public final class DynamoUtils {
 
@@ -35,7 +34,7 @@ public final class DynamoUtils {
 
     /**
      * Given a class annotated as DynamoDBTable, gets the name override responsible
-     * for generating the fully qualified table name. 
+     * for generating the fully qualified table name.
      */
     public static TableNameOverride getTableNameOverride(final Class<?> dynamoTable, final Config config) {
         checkNotNull(dynamoTable);
@@ -64,7 +63,7 @@ public final class DynamoUtils {
     }
 
     /**
-     * Given a simple table name, gets the fully qualified table name.
+     * Given a fully-qualified table name, gets the simple table name.
      */
     public static String getSimpleTableName(final String fullyQualifiedTableName, final Config config) {
         checkNotNull(fullyQualifiedTableName);
@@ -84,35 +83,38 @@ public final class DynamoUtils {
     /**
      * Gets the mapper with UPDATE behavior for saves and CONSISTENT reads.
      */
-    public static DynamoDBMapper getMapper(final Class<?> dynamoTable, final Config config,
-            final AmazonDynamoDB dynamoClient) {
+    public static DynamoDBMapper getMapper(final Class<?> dynamoTable,
+                                           final Config config,
+                                           final AmazonDynamoDB dynamoClient) {
         checkNotNull(dynamoTable);
         checkNotNull(config);
         checkNotNull(dynamoClient);
         final DynamoDBMapperConfig mapperConfig = new DynamoDBMapperConfig.Builder()
                 .withSaveBehavior(DynamoDBMapperConfig.SaveBehavior.UPDATE)
                 .withConsistentReads(DynamoDBMapperConfig.ConsistentReads.CONSISTENT)
-                .withTableNameOverride(getTableNameOverride(dynamoTable, config)).build();
+                .withTableNameOverride(getTableNameOverride(dynamoTable, config))
+                .build();
         return new DynamoDBMapper(dynamoClient, mapperConfig);
     }
 
     /**
      * Gets the mapper with UPDATE behavior for saves and EVENTUALLY consistent reads.
      */
-    public static DynamoDBMapper getMapperEventually(final Class<?> dynamoTable, final Config config,
-            final AmazonDynamoDB dynamoClient) {
+    public static DynamoDBMapper getMapperEventually(final Class<?> dynamoTable,
+                                                     final Config config,
+                                                     final AmazonDynamoDB dynamoClient) {
         checkNotNull(dynamoTable);
         checkNotNull(config);
         checkNotNull(dynamoClient);
         final DynamoDBMapperConfig mapperConfig = new DynamoDBMapperConfig.Builder()
                 .withSaveBehavior(DynamoDBMapperConfig.SaveBehavior.UPDATE)
                 .withConsistentReads(DynamoDBMapperConfig.ConsistentReads.EVENTUAL)
-                .withTableNameOverride(getTableNameOverride(dynamoTable, config)).build();
+                .withTableNameOverride(getTableNameOverride(dynamoTable, config))
+                .build();
         return new DynamoDBMapper(dynamoClient, mapperConfig);
     }
 
     public static CreateTableRequest getCreateTableRequest(final TableDescription table) {
-
         checkNotNull(table);
 
         final CreateTableRequest request = new CreateTableRequest()
@@ -123,7 +125,8 @@ public final class DynamoUtils {
         // ProvisionedThroughputDescription -> ProvisionedThroughput
         final ProvisionedThroughput throughput = new ProvisionedThroughput(
                 table.getProvisionedThroughput().getReadCapacityUnits(),
-                table.getProvisionedThroughput().getWriteCapacityUnits());
+                table.getProvisionedThroughput().getWriteCapacityUnits()
+        );
         request.setProvisionedThroughput(throughput);
 
         // GlobalSecondaryIndexDescription -> GlobalSecondaryIndex
@@ -135,7 +138,8 @@ public final class DynamoUtils {
                     .withProjection(globalIndexDesc.getProjection())
                     .withProvisionedThroughput(new ProvisionedThroughput(
                             globalIndexDesc.getProvisionedThroughput().getReadCapacityUnits(),
-                            globalIndexDesc.getProvisionedThroughput().getWriteCapacityUnits()));
+                            globalIndexDesc.getProvisionedThroughput().getWriteCapacityUnits()
+                    ));
             globalIndices.add(globalIndex);
         }
         if (globalIndices.size() > 0) {
@@ -177,7 +181,8 @@ public final class DynamoUtils {
         compareKeySchema(keySchema1, keySchema2);
     }
 
-    private static void compareKeySchema(final List<KeySchemaElement> keySchema1, final List<KeySchemaElement> keySchema2) {
+    private static void compareKeySchema(final List<KeySchemaElement> keySchema1,
+                                         final List<KeySchemaElement> keySchema2) {
         if (keySchema1.size() != keySchema2.size()) {
             throw new KeySchemaMismatchException("Key schemas have different number of key elements.");
         }
@@ -270,5 +275,6 @@ public final class DynamoUtils {
         return filteredTables;
     }
 
-    private DynamoUtils() {}
+    private DynamoUtils() {
+    }
 }
