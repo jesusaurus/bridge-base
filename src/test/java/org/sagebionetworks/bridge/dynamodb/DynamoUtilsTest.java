@@ -23,23 +23,22 @@ import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndex;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import org.sagebionetworks.bridge.config.Config;
-import org.sagebionetworks.bridge.config.Environment;
-import org.sagebionetworks.bridge.dynamodb.test.TestHealthDataRecord;
-
 public class DynamoUtilsTest {
-    @Test
-    public void testTableName() {
-        final Config config = mock(Config.class);
-        when(config.getUser()).thenReturn("testTableName");
-        when(config.getEnvironment()).thenReturn(Environment.LOCAL);
-        final String fqTableName = DynamoUtils.getFullyQualifiedTableName(TestHealthDataRecord.class, config);
-        assertEquals("local-testTableName-TestHealthDataRecord", fqTableName);
-        final String simpleTableName = DynamoUtils.getSimpleTableName(fqTableName, config);
-        assertEquals("TestHealthDataRecord", simpleTableName);
-        assertEquals(fqTableName, DynamoUtils.getFullyQualifiedTableName(simpleTableName, config));
+
+    private DynamoUtils dynamoUtils;
+
+    private DynamoNamingHelper namingHelper;
+    private AmazonDynamoDB dynamoClient;
+
+    @BeforeMethod
+    public void setup() {
+        namingHelper = mock(DynamoNamingHelper.class);
+        dynamoClient = mock(AmazonDynamoDB.class);
+
+        dynamoUtils = new DynamoUtils(namingHelper, dynamoClient);
     }
 
     @Test
@@ -47,7 +46,7 @@ public class DynamoUtilsTest {
 
         List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);
         TableDescription table = DynamoTestUtils.getTableByName(tables, "TestHealthDataRecord");
-        CreateTableRequest request = DynamoUtils.getCreateTableRequest(table);
+        CreateTableRequest request = dynamoUtils.getCreateTableRequest(table);
         assertNotNull(request);
 
         // KeySchema
@@ -96,43 +95,41 @@ public class DynamoUtilsTest {
         final TableDescription table0 = mock(TableDescription.class);
         when(table0.getTableName()).thenReturn(table0Name);
         final String table1Name = "dev-test-table1";
-        final TableDescription table1= mock(TableDescription.class);
+        final TableDescription table1 = mock(TableDescription.class);
         when(table1.getTableName()).thenReturn(table1Name);
         final String table2Name = "local-test-table2";
         final TableDescription table2 = mock(TableDescription.class);
         when(table2.getTableName()).thenReturn(table2Name);
 
-        AmazonDynamoDB dynamo = mock(AmazonDynamoDB.class);
         DescribeTableResult tableResult = mock(DescribeTableResult.class);
         when(tableResult.getTable()).thenReturn(table0);
-        when(dynamo.describeTable(table0Name)).thenReturn(tableResult);
+        when(dynamoClient.describeTable(table0Name)).thenReturn(tableResult);
         tableResult = mock(DescribeTableResult.class);
         when(tableResult.getTable()).thenReturn(table1);
-        when(dynamo.describeTable(table1Name)).thenReturn(tableResult);
+        when(dynamoClient.describeTable(table1Name)).thenReturn(tableResult);
         tableResult = mock(DescribeTableResult.class);
         when(tableResult.getTable()).thenReturn(table2);
-        when(dynamo.describeTable(table2Name)).thenReturn(tableResult);
+        when(dynamoClient.describeTable(table2Name)).thenReturn(tableResult);
 
         ListTablesResult listResult = mock(ListTablesResult.class);
         when(listResult.getTableNames()).thenReturn(Arrays.asList(table0Name, table1Name));
         when(listResult.getLastEvaluatedTableName()).thenReturn(table1Name);
-        when(dynamo.listTables()).thenReturn(listResult);
+        when(dynamoClient.listTables()).thenReturn(listResult);
         listResult = mock(ListTablesResult.class);
         when(listResult.getTableNames()).thenReturn(Arrays.asList(table2Name));
-        when(dynamo.listTables(table1Name)).thenReturn(listResult);
+        when(dynamoClient.listTables(table1Name)).thenReturn(listResult);
 
         // Test
-        Map<String, TableDescription> tables = DynamoUtils.getExistingTables(dynamo);
+        Map<String, TableDescription> tables = dynamoUtils.getAllExistingTables();
         assertNotNull(tables);
         assertEquals(3, tables.size());
         assertSame(table0, tables.get(table0Name));
         assertSame(table1, tables.get(table1Name));
         assertSame(table2, tables.get(table2Name));
 
-        Config config = mock(Config.class);
-        when(config.getEnvironment()).thenReturn(Environment.LOCAL);
-        when(config.getUser()).thenReturn("test");
-        tables = DynamoUtils.getExistingTables(config, dynamo);
+        when(namingHelper.getTableNamePrefix()).thenReturn("local-test");
+        tables = dynamoUtils.getExistingTables();
+
         assertNotNull(tables);
         assertEquals(2, tables.size());
         assertSame(table0, tables.get(table0Name));
@@ -145,7 +142,7 @@ public class DynamoUtilsTest {
         TableDescription table1 = tables.get(0);
         TableDescription table2 = copyTableDescription(table1);
         // No exception
-        DynamoUtils.compareSchema(table1, table2);
+        dynamoUtils.compareSchema(table1, table2);
     }
 
     @Test(expectedExceptions = KeySchemaMismatchException.class)
@@ -154,7 +151,7 @@ public class DynamoUtilsTest {
         TableDescription table1 = tables.get(0);
         TableDescription table2 = copyTableDescription(table1);
         table2.getKeySchema().get(0).setAttributeName("some fake attr name");
-        DynamoUtils.compareSchema(table1, table2);
+        dynamoUtils.compareSchema(table1, table2);
     }
 
     // Copies the relevant attributes from a table (name, keys, global and local secondary indices)
