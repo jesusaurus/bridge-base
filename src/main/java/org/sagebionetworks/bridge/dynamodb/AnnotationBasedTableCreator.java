@@ -14,9 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.joda.time.LocalDate;
-import org.sagebionetworks.bridge.config.Config;
-
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexRangeKey;
@@ -39,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
+import org.joda.time.LocalDate;
 
 /**
  * Scans a package for types that are annotated as DynamoDBTable and maps
@@ -49,13 +47,13 @@ public class AnnotationBasedTableCreator {
     public static final long DEFAULT_READ_CAPACITY = 10;
     public static final long DEFAULT_WRITE_CAPACITY = 10;
 
-    private final Config config;
+    private final DynamoNamingHelper namingHelper;
 
     /**
-     * @param config  The config whose user and environment will become part of the table name.
+     * @param namingHelper  helper for naming dynamo tables
      */
-    public AnnotationBasedTableCreator(Config config) {
-        this.config = config;
+    public AnnotationBasedTableCreator(DynamoNamingHelper namingHelper) {
+        this.namingHelper = namingHelper;
     }
 
     /**
@@ -188,7 +186,7 @@ public class AnnotationBasedTableCreator {
                     attributes.put(attrName, attribute);
                 }
             }
-            final String tableName = DynamoUtils.getFullyQualifiedTableName(clazz, config);
+            final String tableName = namingHelper.getFullyQualifiedTableName(clazz);
             // Create the table description
             final TableDescription table = new TableDescription()
                 .withTableName(tableName)
