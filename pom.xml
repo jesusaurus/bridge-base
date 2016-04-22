@@ -5,7 +5,7 @@
 
     <groupId>org.sagebionetworks</groupId>
     <artifactId>bridge-base</artifactId>
-    <version>1.4</version>
+    <version>1.5</version>
 
     <properties>
         <aws.version>1.10.56</aws.version>
