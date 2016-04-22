@@ -29,6 +29,26 @@ import org.testng.annotations.Test;
 public class DynamoDataPipelineHelperTest {
 
     @Test
+    public void testGetStringValue()   {
+        PipelineObject o = new PipelineObject().withFields(new Field().withKey("keyA").withStringValue("valA"),
+                new Field().withKey("keyB").withStringValue("valB"),
+                new Field().withKey("keyC").withRefValue("valC")
+                );
+
+        assertEquals("valB", DynamoDataPipelineHelper.getStringValue(o, "keyB").get());
+    }
+
+    @Test
+    public void testGetRefValue() throws Exception {
+        PipelineObject o = new PipelineObject().withFields(new Field().withKey("keyA").withRefValue("valA"),
+                new Field().withKey("keyB").withStringValue("valB"),
+                new Field().withKey("keyC").withRefValue("valC")
+        );
+
+        assertEquals("valC", DynamoDataPipelineHelper.getRefValue(o, "keyC").get());
+    }
+
+    @Test
     public void testCreatePipelineObjects() {
         Region dynamoRegion = Region.getRegion(Regions.US_EAST_1);
         List<String> tableNames = Lists.newArrayList("Table1", "Table2");

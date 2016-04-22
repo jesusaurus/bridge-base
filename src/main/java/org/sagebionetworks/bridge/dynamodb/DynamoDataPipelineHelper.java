@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.dynamodb;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.datapipeline.model.Field;
@@ -16,8 +17,53 @@ import org.joda.time.format.ISODateTimeFormat;
  * Creates a Data Pipeline for backing up Dynamo DB tables within a region.
  */
 public class DynamoDataPipelineHelper {
+    public static final class PipelineObjectType {
+        public static final String DYNAMO_DATA_NODE = "DynamoDBDataNode";
+        public static final String S3_DATA_NODE = "S3DataNode";
+        public static final String EMR_ACTIVITY = "EmrActivity";
+        public static final String SCHEDULE = "Schedule";
+        public static final String EMR_CLUSTER = "EmrCluster";
+    }
 
     private static final String READ_THROUGHPUT_PERCENTAGE = "0.3";
+
+    public static Optional<String> getStringValue(PipelineObject o, String key) {
+        return o.getFields().stream().filter(f -> key.equals(f.getKey())).findFirst().map(Field::getStringValue);
+    }
+
+    public static Optional<String> getRefValue(PipelineObject o, String key) {
+        return o.getFields().stream().filter(f -> key.equals(f.getKey())).findFirst().map(Field::getRefValue);
+    }
+
+    /**
+     * Creates data pipeline objects for a daily data pipeline that will export data for DynamoDB tables in a region.
+     *
+     * @param tableNames   dynamoDB tables to dump
+     * @param dynamoRegion region that the dynamoDB tables belong to
+     * @param s3Bucket     s3 bucket for dynamo table dump and logs, table dumps will go in
+     *                     s3://s3Bucket/regionName/tableName/, logs will go in s3://s3Bucket/logs
+     * @param schedule     default schedule
+     */
+    public static List<PipelineObject> createPipelineObjects(Region dynamoRegion,
+                                                             Collection<String> tableNames,
+                                                             String s3Bucket,
+                                                             PipelineObject schedule) {
+        List<PipelineObject> pipelineObjects = Lists.newArrayList();
+
+        pipelineObjects.add(schedule);
+
+        pipelineObjects.add(getDefault(s3Bucket));
+
+        PipelineObject cluster = getEMRCluster(dynamoRegion);
+
+        pipelineObjects.add(cluster);
+
+        for (String tableName : tableNames) {
+            pipelineObjects.addAll(getEMRActivity(tableName, cluster, dynamoRegion, s3Bucket));
+        }
+
+        return pipelineObjects;
+    }
 
     /**
      * Creates data pipeline objects for a daily data pipeline that will export data for DynamoDB tables in a region.
@@ -33,22 +79,8 @@ public class DynamoDataPipelineHelper {
                                                              String s3Bucket,
                                                              LocalTime localStartTime,
                                                              DateTimeZone localDateTimeZone) {
-        List<PipelineObject> pipelineObjects = Lists.newArrayList();
 
-
-        pipelineObjects.add(getRunDailySchedule(localStartTime, localDateTimeZone));
-
-        pipelineObjects.add(getDefault(s3Bucket));
-
-        PipelineObject cluster = getEMRCluster(dynamoRegion);
-
-        pipelineObjects.add(cluster);
-
-        for (String tableName : tableNames) {
-            pipelineObjects.addAll(getEMRActivity(tableName, cluster, dynamoRegion, s3Bucket));
-        }
-
-        return pipelineObjects;
+        return createPipelineObjects(dynamoRegion,tableNames,s3Bucket, getRunDailySchedule(localStartTime, localDateTimeZone));
     }
 
     static PipelineObject getRunDailySchedule(LocalTime localStartTime, DateTimeZone localTimeZone) {
@@ -61,7 +93,7 @@ public class DynamoDataPipelineHelper {
         String startDateTimeString = dateTime.toString(ISODateTimeFormat.dateHourMinuteSecond());
 
         return new PipelineObject().withName(name).withId(id).withFields(
-                new Field().withKey("type").withStringValue("Schedule"),
+                new Field().withKey("type").withStringValue(PipelineObjectType.SCHEDULE),
                 new Field().withKey("startDateTime").withStringValue(startDateTimeString),
                 new Field().withKey("period").withStringValue("1 day")
         );
@@ -89,7 +121,8 @@ public class DynamoDataPipelineHelper {
         String name = "DDBSourceTable-" + tableName;
         String id = "DDBSourceTable-" + tableName;
 
-        Field type = new Field().withKey("type").withStringValue("DynamoDBDataNode");
+
+        Field type = new Field().withKey("type").withStringValue(PipelineObjectType.DYNAMO_DATA_NODE);
         Field tableNameField = new Field().withKey("tableName").withStringValue(tableName);
         Field readThroughputPercent = new Field().withKey("readThroughputPercent").withStringValue(throughputRatio);
 
@@ -111,17 +144,14 @@ public class DynamoDataPipelineHelper {
                 "/#{format(@scheduledStartTime, 'YYYY-MM-dd-HH-mm-ss')}";
 
 
-        Field type = new Field().withKey("type").withStringValue("S3DataNode");
+        Field type = new Field().withKey("type").withStringValue(PipelineObjectType.S3_DATA_NODE);
         Field directoryPath = new Field().withKey("directoryPath").withStringValue(filename);
         List<Field> fieldsList = Lists.newArrayList(type, directoryPath);
 
         return new PipelineObject().withName(name).withId(id).withFields(fieldsList);
     }
 
-    static List<PipelineObject> getEMRActivity(String tableName,
-                                               PipelineObject assignedCluster,
-                                               Region region,
-                                               String bucket) {
+    static List<PipelineObject> getEMRActivity(String tableName, PipelineObject assignedCluster, Region region, String bucket) {
         String name = "TableBackupActivity-" + tableName;
         String id = "TableBackupActivity-" + tableName;
 
@@ -134,7 +164,7 @@ public class DynamoDataPipelineHelper {
                 "#{output.directoryPath},#{input.tableName},#{input.readThroughputPercent}";
 
         List<Field> fieldsList = Lists.newArrayList(
-                new Field().withKey("type").withStringValue("EmrActivity"),
+                new Field().withKey("type").withStringValue(PipelineObjectType.EMR_ACTIVITY),
                 new Field().withKey("input").withRefValue(inputTable.getId()),
                 new Field().withKey("output").withRefValue(outputLocation.getId()),
                 new Field().withKey("runsOn").withRefValue(assignedCluster.getId()),
@@ -154,7 +184,7 @@ public class DynamoDataPipelineHelper {
         //Discussion on scaling: https://forums.aws.amazon.com/thread.jspa?messageID=667827
 
         return new PipelineObject().withName(name).withId(id).withFields(
-                new Field().withKey("type").withStringValue("EmrCluster"),
+                new Field().withKey("type").withStringValue(PipelineObjectType.EMR_CLUSTER),
                 new Field().withKey("amiVersion").withStringValue("3.8.0"),
                 new Field().withKey("masterInstanceType").withStringValue("m1.medium"),
                 new Field().withKey("coreInstanceType").withStringValue("m1.medium"),

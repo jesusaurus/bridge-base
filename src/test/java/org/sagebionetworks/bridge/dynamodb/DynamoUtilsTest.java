@@ -41,8 +41,6 @@ public class DynamoUtilsTest {
         dynamoUtils = new DynamoUtils(namingHelper, dynamoClient);
     }
 
-
-
     @Test
     public void testGetCreateTableRequest() {
 
@@ -170,9 +168,8 @@ public class DynamoUtilsTest {
         // global indices
         table2.setGlobalSecondaryIndexes(new ArrayList<GlobalSecondaryIndexDescription>());
         for (GlobalSecondaryIndexDescription index : table1.getGlobalSecondaryIndexes()) {
-            table2
-                    .getGlobalSecondaryIndexes()
-                    .add(new GlobalSecondaryIndexDescription()
+            table2.getGlobalSecondaryIndexes().add(
+                    new GlobalSecondaryIndexDescription()
                             .withIndexName(index.getIndexName())
                             .withKeySchema(index.getKeySchema())
                             .withProjection(index.getProjection())
@@ -182,9 +179,8 @@ public class DynamoUtilsTest {
         // local indices
         table2.setLocalSecondaryIndexes(new ArrayList<LocalSecondaryIndexDescription>());
         for (LocalSecondaryIndexDescription index : table1.getLocalSecondaryIndexes()) {
-            table2
-                    .getLocalSecondaryIndexes()
-                    .add(new LocalSecondaryIndexDescription()
+            table2.getLocalSecondaryIndexes().add(
+                    new LocalSecondaryIndexDescription()
                             .withIndexName(index.getIndexName())
                             .withKeySchema(index.getKeySchema())
                             .withProjection(index.getProjection()));
