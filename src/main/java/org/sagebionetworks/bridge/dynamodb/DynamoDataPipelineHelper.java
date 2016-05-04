@@ -21,6 +21,7 @@ public class DynamoDataPipelineHelper {
         public static final String DYNAMO_DATA_NODE = "DynamoDBDataNode";
         public static final String S3_DATA_NODE = "S3DataNode";
         public static final String EMR_ACTIVITY = "EmrActivity";
+        public static final String HADOOP_ACTIVITY = "HadoopActivity";
         public static final String SCHEDULE = "Schedule";
         public static final String EMR_CLUSTER = "EmrCluster";
     }
@@ -59,7 +60,7 @@ public class DynamoDataPipelineHelper {
         pipelineObjects.add(cluster);
 
         for (String tableName : tableNames) {
-            pipelineObjects.addAll(getEMRActivity(tableName, cluster, dynamoRegion, s3Bucket));
+            pipelineObjects.addAll(getHadoopActivity(tableName, cluster, dynamoRegion, s3Bucket));
         }
 
         return pipelineObjects;
@@ -80,7 +81,7 @@ public class DynamoDataPipelineHelper {
                                                              LocalTime localStartTime,
                                                              DateTimeZone localDateTimeZone) {
 
-        return createPipelineObjects(dynamoRegion,tableNames,s3Bucket, getRunDailySchedule(localStartTime, localDateTimeZone));
+        return createPipelineObjects(dynamoRegion, tableNames, s3Bucket, getRunDailySchedule(localStartTime, localDateTimeZone));
     }
 
     static PipelineObject getRunDailySchedule(LocalTime localStartTime, DateTimeZone localTimeZone) {
@@ -151,7 +152,7 @@ public class DynamoDataPipelineHelper {
         return new PipelineObject().withName(name).withId(id).withFields(fieldsList);
     }
 
-    static List<PipelineObject> getEMRActivity(String tableName, PipelineObject assignedCluster, Region region, String bucket) {
+    static List<PipelineObject> getHadoopActivity(String tableName, PipelineObject assignedCluster, Region region, String bucket) {
         String name = "TableBackupActivity-" + tableName;
         String id = "TableBackupActivity-" + tableName;
 
@@ -159,17 +160,19 @@ public class DynamoDataPipelineHelper {
 
         PipelineObject outputLocation = getS3BackupLocation(bucket, region, tableName);
 
-        String stepString = "s3://dynamodb-emr-" + region.getName() + "/emr-ddb-storage-" +
-                "handler/2.1.0/emr-ddb-2.1.0.jar,org.apache.hadoop.dynamodb.tools.DynamoDbExport," +
-                "#{output.directoryPath},#{input.tableName},#{input.readThroughputPercent}";
-
         List<Field> fieldsList = Lists.newArrayList(
-                new Field().withKey("type").withStringValue(PipelineObjectType.EMR_ACTIVITY),
+                new Field().withKey("type").withStringValue(PipelineObjectType.HADOOP_ACTIVITY),
                 new Field().withKey("input").withRefValue(inputTable.getId()),
                 new Field().withKey("output").withRefValue(outputLocation.getId()),
                 new Field().withKey("runsOn").withRefValue(assignedCluster.getId()),
-                new Field().withKey("maximumRetries").withStringValue("2"),
-                new Field().withKey("step").withStringValue(stepString)
+                new Field().withKey("maxActiveInstances").withStringValue("1"),
+                new Field().withKey("maximumRetries").withStringValue("1"),
+                new Field().withKey("jarUri").withStringValue("s3://dynamodb-emr-" + region.getName() + "/emr-ddb-storage-" +
+                        "handler/2.1.0/emr-ddb-2.1.0.jar"),
+                new Field().withKey("argument").withStringValue("org.apache.hadoop.dynamodb.tools.DynamoDbExport"),
+                new Field().withKey("argument").withStringValue("#{output.directoryPath}"),
+                new Field().withKey("argument").withStringValue("#{input.tableName}"),
+                new Field().withKey("argument").withStringValue("#{input.readThroughputPercent}")
         );
 
         PipelineObject activity = new PipelineObject().withName(name).withId(id).withFields(fieldsList);
@@ -182,26 +185,20 @@ public class DynamoDataPipelineHelper {
         String id = "EmrClusterForBackup";
 
         //Discussion on scaling: https://forums.aws.amazon.com/thread.jspa?messageID=667827
-
         return new PipelineObject().withName(name).withId(id).withFields(
                 new Field().withKey("type").withStringValue(PipelineObjectType.EMR_CLUSTER),
                 new Field().withKey("amiVersion").withStringValue("3.8.0"),
                 new Field().withKey("masterInstanceType").withStringValue("m1.medium"),
                 new Field().withKey("coreInstanceType").withStringValue("m1.medium"),
                 new Field().withKey("coreInstanceCount").withStringValue("1"),
+                new Field().withKey("taskInstanceType").withStringValue("m1.medium"),
+                new Field().withKey("taskInstanceCount").withStringValue("2"),
                 new Field().withKey("region").withStringValue(region.getName()),
-                new Field().withKey("terminateAfter").withStringValue("12 hours"),
+                new Field().withKey("terminateAfter").withStringValue("23 hours"),
                 new Field().withKey("role").withStringValue("DataPipelineDefaultRole"),
+                new Field().withKey("hadoopSchedulerType").withStringValue("PARALLEL_FAIR_SCHEDULING"),
                 new Field().withKey("bootstrapAction").withStringValue("s3://elasticmapreduce" +
-                        "/bootstrap-actions/configure-hadoop, --yarn-key-value,yarn.nodemanager.resource" +
-                        ".memory-mb=11520," +
-                        "--yarn-key-value,yarn.scheduler.maximum-allocation-mb=11520," +
-                        "--yarn-key-value,yarn.scheduler.minimum-allocation-mb=1440," +
-                        "--yarn-key-value,yarn.app.mapreduce.am.resource.mb=2880," +
-                        "--mapred-key-value,mapreduce.map.memory.mb=5760," +
-                        "--mapred-key-value,mapreduce.map.java.opts=-Xmx4608M," +
-                        "--mapred-key-value,mapreduce.reduce.memory.mb=2880," +
-                        "--mapred-key-value,mapreduce.reduce.java.opts=-Xmx2304m," +
+                        "/bootstrap-actions/configure-hadoop," +
                         "--mapred-key-value,mapreduce.map.speculative=false")
         );
     }

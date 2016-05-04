@@ -67,21 +67,21 @@ public class DynamoDataPipelineHelperTest {
 
             List<PipelineObject> dynamoNodes = objects
                     .stream()
-                    .filter(o->isOfType(o, "DynamoDBDataNode"))
+                    .filter(o->isOfType(o, DynamoDataPipelineHelper.PipelineObjectType.DYNAMO_DATA_NODE))
                     .filter(o -> tableName.equals(getFieldByKey(o, "tableName").getStringValue()))
                     .collect(Collectors.toList());
             assertEquals(1, dynamoNodes.size());
 
             List<PipelineObject> s3Outputs = objects
                     .stream()
-                    .filter(o->isOfType(o, "S3DataNode"))
+                    .filter(o->isOfType(o, DynamoDataPipelineHelper.PipelineObjectType.S3_DATA_NODE))
                     .filter(o -> getFieldByKey(o, "directoryPath").getStringValue().contains(tableName))
                     .collect(Collectors.toList());
             assertEquals(1, s3Outputs.size());
 
             List<PipelineObject> activities = objects
                     .stream()
-                    .filter(o->isOfType(o, "EmrActivity"))
+                    .filter(o->isOfType(o, DynamoDataPipelineHelper.PipelineObjectType.HADOOP_ACTIVITY))
                     .filter(o -> dynamoNodes.get(0).getId().equals(getFieldByKey(o, "input").getRefValue()))
                     .filter(o -> s3Outputs.get(0).getId().equals(getFieldByKey(o, "output").getRefValue()))
                     .collect(Collectors.toList());
@@ -166,37 +166,37 @@ public class DynamoDataPipelineHelperTest {
         String bucket = "bucketX";
 
         PipelineObject cluster = new PipelineObject().withId(clusterId);
-        List<PipelineObject> objects = DynamoDataPipelineHelper.getEMRActivity(tableName, cluster, region, bucket);
+        List<PipelineObject> objects = DynamoDataPipelineHelper.getHadoopActivity(tableName, cluster, region, bucket);
 
         assertEquals(3, objects.size());
 
         PipelineObject s3Output = null;
         PipelineObject dynamoInput = null;
-        PipelineObject emrActivity = null;
+        PipelineObject hadoopActivity = null;
 
         for (PipelineObject object : objects) {
             String type = getFieldByKey(object, "type").getStringValue();
 
             switch (type) {
-                case "EmrActivity":
-                    emrActivity = object;
+                case DynamoDataPipelineHelper.PipelineObjectType.HADOOP_ACTIVITY:
+                    hadoopActivity = object;
                     break;
-                case "S3DataNode":
+                case DynamoDataPipelineHelper.PipelineObjectType.S3_DATA_NODE:
                     s3Output = object;
                     break;
-                case "DynamoDBDataNode":
+                case DynamoDataPipelineHelper.PipelineObjectType.DYNAMO_DATA_NODE:
                     dynamoInput = object;
                     break;
             }
         }
 
         assertNotNull(dynamoInput);
-        assertNotNull(emrActivity);
+        assertNotNull(hadoopActivity);
         assertNotNull(s3Output);
 
-        assertEquals(dynamoInput.getId(), getFieldByKey(emrActivity, "input").getRefValue());
-        assertEquals(s3Output.getId(), getFieldByKey(emrActivity, "output").getRefValue());
-        assertEquals(clusterId, getFieldByKey(emrActivity, "runsOn").getRefValue());
+        assertEquals(dynamoInput.getId(), getFieldByKey(hadoopActivity, "input").getRefValue());
+        assertEquals(s3Output.getId(), getFieldByKey(hadoopActivity, "output").getRefValue());
+        assertEquals(clusterId, getFieldByKey(hadoopActivity, "runsOn").getRefValue());
     }
 
     private void assertStringValueEquals(String expected, PipelineObject object, String key) {
