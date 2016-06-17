@@ -9,6 +9,9 @@ public class SchemaUtilsTest {
     @DataProvider(name = "sanitizeFieldNameDataProvider")
     public Object[][] sanitizeFieldNameDataProvider() {
         return new Object[][] {
+                { null, null },
+                { "", "" },
+                { "    ", "_  _" },
                 { "Passthrough1", "Passthrough1" },
                 { "__lots__of__underscores__", "__lots__of__underscores__" },
                 { "--lots--of--dashes--", "_-lots--of--dashes--" },
