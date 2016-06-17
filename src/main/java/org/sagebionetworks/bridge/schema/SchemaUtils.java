@@ -2,6 +2,8 @@ package org.sagebionetworks.bridge.schema;
 
 import java.util.regex.Pattern;
 
+import com.google.common.base.Strings;
+
 /** Static utility class for Upload Schemas. */
 public class SchemaUtils {
     private static final Pattern FIELD_NAME_DOT_REPLACEMENT_PATTERN = Pattern.compile("\\.{2,}");
@@ -26,9 +28,13 @@ public class SchemaUtils {
      *
      * @param name
      *         field name to be sanitized
-     * @return sanitized field name
+     * @return sanitized field name, or null if the input was null
      */
     public static String sanitizeFieldName(String name) {
+        if (Strings.isNullOrEmpty(name)) {
+            return name;
+        }
+
         // If the first char is an invalid char (space, dash, dot), replace it with a _
         name = FIELD_NAME_START_REPLACEMENT_PATTERN.matcher(name).replaceFirst("_");
 
