@@ -60,7 +60,12 @@ public class PollSqsWorker implements Runnable {
                     continue;
                 }
 
-                callback.callback(sqsMessage.getBody());
+                try {
+                    callback.callback(sqsMessage.getBody());
+                } catch (PollSqsWorkerBadRequestException ex) {
+                    // This is a bad request. It should not be retried. Log a warning and suppress.
+                    LOG.warn("PollSqsWorker bad request: " + ex.getMessage(), ex);
+                }
 
                 // If the callback doesn't throw, this means it's successfully processed the message, and we should
                 // delete it from SQS to prevent re-processing the message.
