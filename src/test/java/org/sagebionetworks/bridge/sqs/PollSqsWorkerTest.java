@@ -18,17 +18,20 @@ import org.testng.annotations.Test;
 public class PollSqsWorkerTest {
     @Test
     public void test() {
-        // Test strategy - 3 iterations:
+        // Test strategy - 4 iterations:
         // 1. no message
         // 2. exception
         // 3. success
+        // 4. bad request
 
         // mock SQS helper
         Message message2 = new Message().withBody("error-message").withReceiptHandle("error-receipt-handle");
         Message message3 = new Message().withBody("success-message").withReceiptHandle("success-receipt-handle");
+        Message message4 = new Message().withBody("bad-request-message").withReceiptHandle(
+                "bad-request-receipt-handle");
 
         SqsHelper mockSqsHelper = mock(SqsHelper.class);
-        when(mockSqsHelper.poll("dummy-queue-url")).thenReturn(null, message2, message3);
+        when(mockSqsHelper.poll("dummy-queue-url")).thenReturn(null, message2, message3, message4);
 
         // test callback
         Set<String> receivedMessageSet = new HashSet<>();
@@ -36,6 +39,8 @@ public class PollSqsWorkerTest {
             receivedMessageSet.add(messageBody);
             if (messageBody.equals("error-message")) {
                 throw new TestException();
+            } else if (messageBody.equals("bad-request-message")) {
+                throw new PollSqsWorkerBadRequestException();
             }
         };
 
@@ -47,19 +52,21 @@ public class PollSqsWorkerTest {
         worker.setSqsHelper(mockSqsHelper);
 
         // spy shouldKeepRunning() - 3 iterations
-        doReturn(true).doReturn(true).doReturn(true).doReturn(false).when(worker).shouldKeepRunning();
+        doReturn(true).doReturn(true).doReturn(true).doReturn(true).doReturn(false).when(worker).shouldKeepRunning();
 
         // execute
         worker.run();
 
         // validate - callback received both messages
-        assertEquals(receivedMessageSet.size(), 2);
+        assertEquals(receivedMessageSet.size(), 3);
         assertTrue(receivedMessageSet.contains("error-message"));
         assertTrue(receivedMessageSet.contains("success-message"));
+        assertTrue(receivedMessageSet.contains("bad-request-message"));
 
-        // validate - success message is deleted; error message is not
+        // validate - success message and bad request message are deleted; error message is not
         verify(mockSqsHelper).deleteMessage("dummy-queue-url", "success-receipt-handle");
         verify(mockSqsHelper, never()).deleteMessage("dummy-queue-url", "error-receipt-handle");
+        verify(mockSqsHelper).deleteMessage("dummy-queue-url", "bad-request-receipt-handle");
     }
 
     @SuppressWarnings("serial")
