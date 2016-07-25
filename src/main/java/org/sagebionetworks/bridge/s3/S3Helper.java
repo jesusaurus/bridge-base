@@ -86,8 +86,7 @@ public class S3Helper {
     @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
             randomize = false)
     public byte[] readS3FileAsBytes(String bucket, String key) throws IOException {
-        S3Object s3File = s3Client.getObject(bucket, key);
-        try (InputStream s3Stream = s3File.getObjectContent()) {
+        try (S3Object s3File = s3Client.getObject(bucket, key); InputStream s3Stream = s3File.getObjectContent()) {
             return ByteStreams.toByteArray(s3Stream);
         }
     }
@@ -106,9 +105,8 @@ public class S3Helper {
     @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
             randomize = false)
     public List<String> readS3FileAsLines(String bucket, String key) throws IOException {
-        S3Object s3File = s3Client.getObject(bucket, key);
-        try (BufferedReader recordIdReader = new BufferedReader(new InputStreamReader(s3File.getObjectContent(),
-                Charsets.UTF_8))) {
+        try (S3Object s3File = s3Client.getObject(bucket, key); BufferedReader recordIdReader = new BufferedReader(
+                new InputStreamReader(s3File.getObjectContent(), Charsets.UTF_8))) {
             return CharStreams.readLines(recordIdReader);
         }
     }
