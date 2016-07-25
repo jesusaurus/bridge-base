@@ -3,7 +3,9 @@ package org.sagebionetworks.bridge.s3;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Matchers.same;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
@@ -72,9 +74,12 @@ public class S3HelperTest {
         String key = "key-with-bytes";
         String content = "this is the answer in bytes";
 
-        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, content);
+        S3Object spyS3Object = spyS3ObjectForRead(content);
+        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, spyS3Object);
         byte[] retValBytes = testS3Helper.readS3FileAsBytes(bucket, key);
         assertEquals(new String(retValBytes, Charsets.UTF_8), content);
+
+        verify(spyS3Object, atLeastOnce()).close();
     }
 
     @Test
@@ -83,9 +88,12 @@ public class S3HelperTest {
         String key = "test-key";
         String content = "this is the answer";
 
-        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, content);
+        S3Object spyS3Object = spyS3ObjectForRead(content);
+        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, spyS3Object);
         String retVal = testS3Helper.readS3FileAsString(bucket, key);
         assertEquals(retVal, content);
+
+        verify(spyS3Object, atLeastOnce()).close();
     }
 
     @Test
@@ -94,15 +102,18 @@ public class S3HelperTest {
         String key = "key-with-lines";
         String content = "foo\nbar\nbaz";
 
-        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, content);
+        S3Object spyS3Object = spyS3ObjectForRead(content);
+        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, spyS3Object);
         List<String> lineList = testS3Helper.readS3FileAsLines(bucket, key);
         assertEquals(lineList.size(), 3);
         assertEquals(lineList.get(0), "foo");
         assertEquals(lineList.get(1), "bar");
         assertEquals(lineList.get(2), "baz");
+
+        verify(spyS3Object, atLeastOnce()).close();
     }
 
-    private static S3Helper setupMockS3ForRead(String bucket, String key, String content) {
+    private static S3Object spyS3ObjectForRead(String content) {
         // mock S3 stream
         byte[] contentBytes = content.getBytes(Charsets.UTF_8);
         InputStream contentStream = new ByteArrayInputStream(contentBytes);
@@ -110,10 +121,13 @@ public class S3HelperTest {
         // not sure this is safe, but this is the easiest way to mock an S3 stream
         S3ObjectInputStream mockS3Stream = new S3ObjectInputStream(contentStream, null, false);
 
-        // mock S3 object
-        S3Object mockS3Object = new S3Object();
+        // mock S3 object - This needs to be a spy, so we can verify that it was closed.
+        S3Object mockS3Object = spy(new S3Object());
         mockS3Object.setObjectContent(mockS3Stream);
+        return mockS3Object;
+    }
 
+    private static S3Helper setupMockS3ForRead(String bucket, String key, S3Object mockS3Object) {
         // mock S3 client
         AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
         when(mockS3Client.getObject(bucket, key)).thenReturn(mockS3Object);
