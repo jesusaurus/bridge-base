@@ -6,8 +6,12 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.sagebionetworks.bridge.json.DefaultObjectMapper;
 
 /** Helper class to wrap polling SQS and deleting messages. */
 public class SqsHelper {
@@ -56,5 +60,22 @@ public class SqsHelper {
      */
     public void deleteMessage(String sqsQueueUrl, String receiptHandle) {
         sqsClient.deleteMessage(sqsQueueUrl, receiptHandle);
+    }
+
+    /**
+     * Wrapper for sending a message to an SQS queue, using Jackson serialization to convert that object into JSON.
+     *
+     * @param sqsQueueUrl
+     *         queue URL to send message to
+     * @param messageObject
+     *         object to send as JSON
+     * @param delaySeconds
+     *         optional delay in seconds before the message is made available in SQS
+     */
+    public void sendMessageAsJson(String sqsQueueUrl, Object messageObject, Integer delaySeconds)
+            throws JsonProcessingException {
+        String messageBody = DefaultObjectMapper.INSTANCE.writeValueAsString(messageObject);
+        SendMessageRequest req = new SendMessageRequest(sqsQueueUrl, messageBody).withDelaySeconds(delaySeconds);
+        sqsClient.sendMessage(req);
     }
 }
