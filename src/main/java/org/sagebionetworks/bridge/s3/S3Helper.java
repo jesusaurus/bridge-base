@@ -16,6 +16,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import com.jcabi.aspects.RetryOnFailure;
@@ -26,6 +27,8 @@ import org.joda.time.DateTime;
  * Component annotation because there are multiple S3 clients, so there may be multiple S3 helpers.
  */
 public class S3Helper {
+    private static final Joiner LINES_JOINER = Joiner.on('\n').useForNull("");
+
     private AmazonS3Client s3Client;
 
     /**
@@ -163,5 +166,25 @@ public class S3Helper {
             randomize = false)
     public void writeFileToS3(String bucket, String key, File file) {
         s3Client.putObject(bucket, key, file);
+    }
+
+    /**
+     * Upload the given lines as a file to S3. The lines will be joined by a single newline (\n), and then streamed to
+     * S3.
+     *
+     * @param bucket
+     *         bucket to upload to
+     * @param key
+     *         key (filename) to upload to
+     * @param lines
+     *         lines to upload
+     * @throws IOException
+     *         if uploading the lines fails
+     */
+    public void writeLinesToS3(String bucket, String key, Iterable<String> lines) throws IOException {
+        // Join the lines to a String, then convert the String to bytes using UTF-8.
+        String joinedLines = LINES_JOINER.join(lines);
+        byte[] linesData = joinedLines.getBytes(Charsets.UTF_8);
+        writeBytesToS3(bucket, key, linesData);
     }
 }

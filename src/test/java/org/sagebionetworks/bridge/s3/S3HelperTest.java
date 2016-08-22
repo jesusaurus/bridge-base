@@ -23,6 +23,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import org.joda.time.DateTime;
 import org.mockito.ArgumentCaptor;
@@ -168,5 +169,24 @@ public class S3HelperTest {
         File mockFile = mock(File.class);
         s3Helper.writeFileToS3("write-bucket", "write-file-key", mockFile);
         verify(mockS3Client).putObject("write-bucket", "write-file-key", mockFile);
+    }
+
+    @Test
+    public void writeLines() throws Exception {
+        // set up mock and test helper
+        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
+        S3Helper s3Helper = new S3Helper();
+        s3Helper.setS3Client(mockS3Client);
+
+        // execute and validate
+        s3Helper.writeLinesToS3("test-bucket", "test-key", ImmutableList.of("foo", "bar", "baz"));
+
+        ArgumentCaptor<InputStream> streamCaptor = ArgumentCaptor.forClass(InputStream.class);
+        verify(mockS3Client).putObject(eq("test-bucket"), eq("test-key"), streamCaptor.capture(),
+                isNull(ObjectMetadata.class));
+
+        InputStream writtenStream = streamCaptor.getValue();
+        byte[] writtenBytes = ByteStreams.toByteArray(writtenStream);
+        assertEquals(new String(writtenBytes, Charsets.UTF_8), "foo\nbar\nbaz");
     }
 }
