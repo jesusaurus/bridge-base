@@ -40,6 +40,25 @@ public class JedisOps {
     }
 
     /**
+     * Set key to hold the string value. If key already holds a value, it is 
+     * overwritten, regardless of its type. Any previous time to live associated 
+     * with the key is discarded.
+     *
+     * @param key
+     *            key of the key-value pair.
+     * @param value
+     *            value of the key-value pair.
+     */
+    public String set(final String key, final String value) {
+        return new AbstractJedisTemplate<String>() {
+            @Override
+            String execute(Jedis jedis) {
+                return jedis.set(key, value);
+            }
+        }.execute();
+    }
+    
+    /**
      * Sets the value of the key and makes it expire after the specified
      * seconds.
      *
