@@ -30,6 +30,12 @@ public class JedisOpsTest {
     }
 
     @Test
+    public void test() {
+        ops.set("key", "val");
+        verify(jedis, times(1)).set("key", "val");
+    }
+    
+    @Test
     public void testSetex() {
         ops.setex("key", 5, "val");
         verify(jedis, times(1)).setex("key", 5, "val");
