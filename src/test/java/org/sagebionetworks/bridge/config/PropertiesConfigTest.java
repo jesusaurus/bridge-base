@@ -17,6 +17,7 @@ import org.testng.annotations.Test;
 public class PropertiesConfigTest {
 
     private Path configFile;
+    private static final String TEST_CONF_FILE = "conf/bridge.conf";
 
     @BeforeMethod
     public void before() throws URISyntaxException {
@@ -87,8 +88,30 @@ public class PropertiesConfigTest {
     }
 
     @Test
+    public void testGetIntFromStringPath() throws IOException {
+        Config config = new PropertiesConfig(TEST_CONF_FILE, configFile);
+        assertEquals(2000, config.getInt("example.timeout"));
+    }
+
+    @Test
     public void testGetList() throws IOException {
         Config config = new PropertiesConfig(configFile, configFile);
+        List<String> list = config.getList("example.property");
+        assertNotNull(list);
+        assertEquals(1, list.size());
+        assertEquals("example.value", list.get(0));
+        list = config.getList("example.list");
+        assertNotNull(list);
+        assertEquals(4, list.size());
+        assertEquals("a", list.get(0));
+        assertEquals("bc", list.get(1));
+        assertEquals("d", list.get(2));
+        assertEquals("e", list.get(3));
+    }
+
+    @Test
+    public void testGetListFromStringPath() throws IOException {
+        Config config = new PropertiesConfig(TEST_CONF_FILE, configFile);
         List<String> list = config.getList("example.property");
         assertNotNull(list);
         assertEquals(1, list.size());
