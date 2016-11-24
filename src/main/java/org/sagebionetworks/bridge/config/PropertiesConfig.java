@@ -43,10 +43,10 @@ public class PropertiesConfig implements Config {
     static final String USER_KEY = "bridge.user";
     static final String ENV_KEY = "bridge.env";
 
-    private String user;
-    private Environment environment;
-    private Properties properties;
-    private Pattern delimiter;
+    private final String user;
+    private final Environment environment;
+    private final Properties properties;
+    private final Pattern delimiter;
 
 
     /**
