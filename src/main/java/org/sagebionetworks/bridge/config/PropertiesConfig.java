@@ -2,11 +2,13 @@ package org.sagebionetworks.bridge.config;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -14,6 +16,9 @@ import java.util.regex.Pattern;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 
 /**
  * Config backed by Java properties.
@@ -43,6 +48,7 @@ public class PropertiesConfig implements Config {
     private final Properties properties;
     private final Pattern delimiter;
 
+
     /**
      * Loads config from a template file.
      * <p>
@@ -57,6 +63,10 @@ public class PropertiesConfig implements Config {
      *            Path to the config template file. 
      */
     public PropertiesConfig(final Path configTemplate) throws IOException {
+        this(configTemplate, null, DEFAULT_LIST_DELIMITER);
+    }
+
+    public PropertiesConfig(final String configTemplate) throws IOException {
         this(configTemplate, null, DEFAULT_LIST_DELIMITER);
     }
 
@@ -83,6 +93,10 @@ public class PropertiesConfig implements Config {
         this(configTemplate, userConfig, DEFAULT_LIST_DELIMITER);
     }
 
+    public PropertiesConfig(final String configTemplate, final Path userConfig) throws IOException {
+        this(configTemplate, userConfig, DEFAULT_LIST_DELIMITER);
+    }
+
     /**
      * Loads config from a template file and a local config file.
      * <p>
@@ -99,7 +113,7 @@ public class PropertiesConfig implements Config {
      * @param configTemplate
      *            Path to the config template file in the source code.
      *
-     * @param userConfig
+     * @param localConfig
      *            Path to the local config file.
      *
      * @param delimiterRegex
@@ -108,21 +122,42 @@ public class PropertiesConfig implements Config {
      */
     public PropertiesConfig(final Path configTemplate, final Path localConfig,
             final String delimiterRegex) throws IOException {
-        checkNotNull(configTemplate);
+        this(setupPropertiesFromPath(configTemplate), localConfig, delimiterRegex);
+    }
+
+    public PropertiesConfig(final String configTemplate, final Path localConfig,
+                            final String delimiterRegex) throws IOException {
+        this(setupPropertiesFromString(configTemplate), localConfig, delimiterRegex);
+    }
+
+    public PropertiesConfig(final Properties properties, final Path localConfig, final String delimiterRegex) throws IOException {
+        checkNotNull(properties);
         checkNotNull(delimiterRegex);
-        final Properties properties = new Properties();
-        try (final Reader templateReader = Files.newBufferedReader(configTemplate, StandardCharsets.UTF_8)) {
-            properties.load(templateReader);
-        }
+
         if (localConfig != null) {
-            try (final Reader localReader = Files.newBufferedReader(localConfig, StandardCharsets.UTF_8)) {
-                properties.load(localReader);
+            if (Files.exists(localConfig)) {
+                properties.load(Files.newBufferedReader(localConfig, StandardCharsets.UTF_8));
             }
         }
+
         user = readUser(properties);
         environment = readEnvironment(properties);
         this.properties = new Properties(collapse(properties, environment.name().toLowerCase()));
         delimiter = Pattern.compile(delimiterRegex);
+    }
+
+    private static Properties setupPropertiesFromPath (final Path configTemplate) throws IOException {
+        final Properties properties = new Properties();
+        try (final Reader templateReader = Files.newBufferedReader(configTemplate, StandardCharsets.UTF_8)) {
+            properties.load(templateReader);
+        }
+        return properties;
+    }
+
+    private static Properties setupPropertiesFromString(final String configTemplate) throws IOException {
+        Resource resource = new ClassPathResource(configTemplate);
+        Properties properties = PropertiesLoaderUtils.loadProperties(resource);
+        return properties;
     }
 
     @Override
