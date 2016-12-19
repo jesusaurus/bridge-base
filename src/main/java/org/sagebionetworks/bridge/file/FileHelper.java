@@ -86,6 +86,14 @@ public class FileHelper {
     }
 
     /**
+     * Gets the file size in bytes. Should only be used for files, not for directories. This is because our mock file
+     * system tracks directories and files separately (to make it easier to mock and test).
+     */
+    public long fileSize(File file) {
+        return file.length();
+    }
+
+    /**
      * Non-static move method. Should only be used for files and not directories. This is because our mock file system
      * tracks directories and files separately (to make it easier to mock and test).
      */
