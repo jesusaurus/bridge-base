@@ -25,7 +25,6 @@ public class DynamoTableMapperTest {
     public void testGetAnnotatedTables() {
         List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(DynamoTestUtils.PACKAGE);
         assertNotNull(tables);
-        assertEquals(2, tables.size());
         Map<String, TableDescription> tableMap = new HashMap<String, TableDescription>();
         for (TableDescription table : tables) {
             tableMap.put(table.getTableName(), table);
@@ -46,7 +45,6 @@ public class DynamoTableMapperTest {
     public void testLoadDynamoTableClasses() {
         List<Class<?>> classes = DynamoTestUtils.MAPPER.loadDynamoTableClasses(DynamoTestUtils.PACKAGE);
         assertNotNull(classes);
-        assertEquals(2, classes.size());
         Set<String> classSet = new HashSet<String>();
         for (Class<?> clazz : classes) {
             classSet.add(clazz.getName());
@@ -76,7 +74,7 @@ public class DynamoTableMapperTest {
     public void createsGlobalIndices() {
         List<TableDescription> tables = DynamoTestUtils.MAPPER.getTables(TestTask.class);
         TableDescription table = DynamoTestUtils.getTableByName(tables, "TestTask");
-        assertEquals(3, table.getGlobalSecondaryIndexes().size());
+        assertEquals(2, table.getGlobalSecondaryIndexes().size());
 
         GlobalSecondaryIndexDescription index = findIndex(table.getGlobalSecondaryIndexes(), "guid-index");
         assertEquals("INCLUDE", index.getProjection().getProjectionType());
@@ -90,9 +88,6 @@ public class DynamoTableMapperTest {
         assertEquals("scheduledOn", index.getKeySchema().get(1).getAttributeName());
         assertEquals(Long.valueOf(18), index.getProvisionedThroughput().getWriteCapacityUnits());
         assertEquals(Long.valueOf(20), index.getProvisionedThroughput().getReadCapacityUnits());
-
-        index = findIndex(table.getGlobalSecondaryIndexes(), "healthCode-expiresOn-index");
-        assertEquals("expiresOn", index.getKeySchema().get(0).getAttributeName());
     }
 
     private GlobalSecondaryIndexDescription findIndex(List<GlobalSecondaryIndexDescription> list, String name) {

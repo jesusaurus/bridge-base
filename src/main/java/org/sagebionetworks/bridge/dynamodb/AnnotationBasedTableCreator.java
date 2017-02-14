@@ -7,12 +7,13 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexHashKey;
@@ -87,8 +88,6 @@ public class AnnotationBasedTableCreator {
                 }
             }
             return classes;
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -145,12 +144,28 @@ public class AnnotationBasedTableCreator {
                     if (isBlank(attrName)) {
                         attrName = getAttributeName(method);
                     }
-                    String indexName = indexKey.globalSecondaryIndexName();
-                    String rangeAttrName = findIndexRangeAttrName(clazz, true, indexName);
-                    GlobalSecondaryIndexDescription descr = createGlobalIndexDescr(
-                            indexName, attrName, rangeAttrName, throughput);
-                    addProjectionIfAnnotated(method, indexName, descr);
-                    globalIndices.add(descr);
+
+                    // Index name can be in globalSecondaryIndexName() or globalSecondaryIndexNames(). (Note the plural.)
+                    // Add them all to a set, then loop over the set to build all indices.
+                    Set<String> indexNameSet = new HashSet<>();
+                    if (isNotBlank(indexKey.globalSecondaryIndexName())) {
+                        indexNameSet.add(indexKey.globalSecondaryIndexName());
+                    }
+                    if (indexKey.globalSecondaryIndexNames() != null) {
+                        for (String oneIndexName : indexKey.globalSecondaryIndexNames()) {
+                            if (isNotBlank(oneIndexName)) {
+                                indexNameSet.add(oneIndexName);
+                            }
+                        }
+                    }
+
+                    for (String oneIndexName : indexNameSet) {
+                        String rangeAttrName = findGlobalIndexRangeAttrName(clazz, oneIndexName);
+                        GlobalSecondaryIndexDescription descr = createGlobalIndexDescr(
+                                oneIndexName, attrName, rangeAttrName, throughput);
+                        addProjectionIfAnnotated(method, oneIndexName, descr);
+                        globalIndices.add(descr);
+                    }
                 } else if (method.isAnnotationPresent(DynamoDBIndexRangeKey.class)) {
                     DynamoDBIndexRangeKey indexKey = method.getAnnotation(DynamoDBIndexRangeKey.class);
                     attrName = indexKey.attributeName();
@@ -162,23 +177,15 @@ public class AnnotationBasedTableCreator {
                     if (isNotBlank(indexName)) {
                         // For a local index, the hash key is always the same hash key, it's only the range key tha
                         // varies.
-                        // String hashAttrName = findIndexHashAttrName(clazz, indexName);
                         LocalSecondaryIndexDescription descr = createLocalIndexDescr(indexName,
                                         hashKey.getAttributeName(), attrName);
                         localIndices.add(descr);
                     }
-                    // If this is a range key but has no index, it hasn't been added yet, and needs to be added now.
-                    // So here we search for the accompanying hash annotation and if it exists, we skip adding this.
-                    indexName = indexKey.globalSecondaryIndexName();
-                    if (isNotBlank(indexName)) {
-                        String hashAttrName = findIndexHashAttrName(clazz, indexName);
-                        if (hashAttrName == null) {
-                            GlobalSecondaryIndexDescription descr = createGlobalIndexDescr(
-                                    indexName, null, attrName, throughput);
-                            addProjectionIfAnnotated(method, indexName, descr);
-                            globalIndices.add(descr);
-                        }
-                    }
+
+                    // Global indexes are already handled in the branch above. No need to handle them here.
+                    // Note that in previous versions of this class, we supported global indices where the hash key is
+                    // the same as the table hash key. This feature is not in use, and doesn't really make sense, since
+                    // you should just use a secondary index.
                 }
                 if (attrName != null) {
                     ScalarAttributeType attrType = getAttributeType(method);
@@ -215,10 +222,6 @@ public class AnnotationBasedTableCreator {
      * If the method is also annotated with a projection annotation, use the projection it indicates. For hash/range
      * global indices, this annotation needs to be on the same method as @DynamoDBIndexHashKey. This is a
      * Bridge-specific annotation, it's not in the AWS SDK.
-     * 
-     * @param method
-     * @param indexName
-     * @param descr
      */
     private void addProjectionIfAnnotated(Method method, String indexName, GlobalSecondaryIndexDescription descr) {
         DynamoProjection projection = method.getAnnotation(DynamoProjection.class);
@@ -274,40 +277,33 @@ public class AnnotationBasedTableCreator {
         return null;
     }
 
-    private String findIndexHashAttrName(final Class<?> clazz, final String indexName) {
+    private String findGlobalIndexRangeAttrName(final Class<?> clazz, final String indexName) {
         if (isBlank(indexName)) {
             return null;
         }
-        return findAttrName(clazz, new Function<Method, String>() {
-            public String apply(Method method) {
-                if (method.isAnnotationPresent(DynamoDBIndexHashKey.class)) {
-                    DynamoDBIndexHashKey indexKey = method.getAnnotation(DynamoDBIndexHashKey.class);
-                    String thisIndexName = indexKey.globalSecondaryIndexName();
-                    if (indexName.equals(thisIndexName)) {
-                        return indexKey.attributeName();
-                    }
-                }
-                return null;
-            }
-        });
-    }
+        return findAttrName(clazz, method -> {
+            if (method.isAnnotationPresent(DynamoDBIndexRangeKey.class)) {
+                DynamoDBIndexRangeKey indexRangeKey = method.getAnnotation(DynamoDBIndexRangeKey.class);
 
-    private String findIndexRangeAttrName(final Class<?> clazz, final boolean isGlobal, final String indexName) {
-        if (isBlank(indexName)) {
-            return null;
-        }
-        return findAttrName(clazz, new Function<Method, String>() {
-            public String apply(Method method) {
-                if (method.isAnnotationPresent(DynamoDBIndexRangeKey.class)) {
-                    DynamoDBIndexRangeKey indexKey = method.getAnnotation(DynamoDBIndexRangeKey.class);
-                    String thisIndexName = isGlobal ? indexKey.globalSecondaryIndexName() : indexKey
-                                    .localSecondaryIndexName();
-                    if (indexName.equals(thisIndexName)) {
-                        return indexKey.attributeName();
+                // Index name can be in globalSecondaryIndexName() or globalSecondaryIndexNames(). (Note the plural.)
+                // Add them all to a set, then check the set contains the name we're looking for.
+                Set<String> rangeKeyIndexNameSet = new HashSet<>();
+                if (isNotBlank(indexRangeKey.globalSecondaryIndexName())) {
+                    rangeKeyIndexNameSet.add(indexRangeKey.globalSecondaryIndexName());
+                }
+                if (indexRangeKey.globalSecondaryIndexNames() != null) {
+                    for (String oneIndexName : indexRangeKey.globalSecondaryIndexNames()) {
+                        if (isNotBlank(oneIndexName)) {
+                            rangeKeyIndexNameSet.add(oneIndexName);
+                        }
                     }
                 }
-                return null;
+
+                if (rangeKeyIndexNameSet.contains(indexName)) {
+                    return indexRangeKey.attributeName();
+                }
             }
+            return null;
         });
     }
 

@@ -55,7 +55,6 @@ public class TestTask {
     public void setScheduledOn(Long scheduledOn) {
         this.scheduledOn = scheduledOn;
     }
-    @DynamoDBIndexRangeKey(attributeName = "expiresOn", globalSecondaryIndexName = "healthCode-expiresOn-index")
     @DynamoDBAttribute
     public Long getExpiresOn() {
         return expiresOn;
