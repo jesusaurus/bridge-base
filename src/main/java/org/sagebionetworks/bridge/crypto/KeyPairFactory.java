@@ -11,7 +11,7 @@ public class KeyPairFactory {
     static {
         try {
             rsa2048 = KeyPairGenerator.getInstance(BcCmsConstants.KEY_PAIR_ALGO);
-            SecureRandom random = SecureRandom.getInstance("NativePRNG");
+            SecureRandom random = new SecureRandom();
             rsa2048.initialize(2048, random);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
