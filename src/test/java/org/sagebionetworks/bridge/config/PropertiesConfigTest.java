@@ -5,7 +5,9 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -21,7 +23,7 @@ public class PropertiesConfigTest {
 
     @BeforeMethod
     public void before() throws URISyntaxException {
-        configFile = Paths.get(getClass().getClassLoader().getResource("conf/bridge.conf").getPath());
+        configFile = Paths.get(getClass().getClassLoader().getResource("conf/bridge.conf").toURI());
     }
 
     @AfterMethod
@@ -177,8 +179,8 @@ public class PropertiesConfigTest {
     }
 
     @Test
-    public void testOverwriteFromString() throws IOException {
-        Path localPath = Paths.get(getClass().getClassLoader().getResource("conf/local.conf").getPath());
+    public void testOverwriteFromString() throws IOException, URISyntaxException {
+        Path localPath = Paths.get(getClass().getClassLoader().getResource("conf/local.conf").toURI());
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(TEST_CONF_FILE, localPath);
         assertEquals("local.value.for.dev", config.get("example.property"));
