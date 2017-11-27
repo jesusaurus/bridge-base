@@ -24,7 +24,6 @@ import org.springframework.core.io.support.PropertiesLoaderUtils;
  * Config backed by Java properties.
  */
 public class PropertiesConfig implements Config {
-
     /**
      * Default user when user is not specified in the config.
      */
@@ -276,7 +275,12 @@ public class PropertiesConfig implements Config {
                 value = envReader.read(key);
             }
             if (value != null) {
-                collapsed.setProperty(key, value);
+                if (key.startsWith(envName + ".")) {
+                    String strippedName = key.substring(envName.length() + 1);
+                    collapsed.setProperty(strippedName, value);
+                } else {
+                    collapsed.setProperty(key, value);
+                }
             }
         }
         return collapsed;
