@@ -179,10 +179,30 @@ public class PropertiesConfigTest {
     }
 
     @Test
-    public void testOverwriteFromString() throws IOException, URISyntaxException {
+    public void envSpecificPropertyOverwritesProperty() throws IOException, URISyntaxException {
         Path localPath = Paths.get(getClass().getClassLoader().getResource("conf/local.conf").toURI());
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(TEST_CONF_FILE, localPath);
         assertEquals("local.value.for.dev", config.get("example.property"));
+    }
+
+    @Test
+    public void envVariableOverwritesProperty() throws IOException, URISyntaxException {
+        Path localPath = Paths.get(getClass().getClassLoader().getResource("conf/local.conf").toURI());
+        System.setProperty(PropertiesConfig.ENV_KEY, "dev");
+        System.setProperty("example.property", "override.value.for.dev");
+        Config config = new PropertiesConfig(TEST_CONF_FILE, localPath);
+        assertEquals("override.value.for.dev", config.get("example.property"));
+        System.clearProperty("example.property");
+    }
+
+    @Test
+    public void envVariableOverwritesEnvSpecificProperty() throws IOException, URISyntaxException {
+        Path localPath = Paths.get(getClass().getClassLoader().getResource("conf/local.conf").toURI());
+        System.setProperty(PropertiesConfig.ENV_KEY, "dev");
+        System.setProperty("dev.example.property", "override.value.for.dev");
+        Config config = new PropertiesConfig(TEST_CONF_FILE, localPath);
+        assertEquals("override.value.for.dev", config.get("example.property"));
+        System.clearProperty("dev.example.property");
     }
 }
