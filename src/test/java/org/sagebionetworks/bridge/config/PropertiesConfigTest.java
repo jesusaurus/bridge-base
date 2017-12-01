@@ -36,45 +36,45 @@ public class PropertiesConfigTest {
     public void testGetUser() throws IOException {
         System.setProperty(PropertiesConfig.USER_KEY, "testGetUser");
         Config config = new PropertiesConfig(configFile);
-        assertEquals("testGetUser", config.getUser());
+        assertEquals(config.getUser(), "testGetUser");
     }
 
     @Test
     public void testGetDefaultUser() throws IOException {
         Config config = new PropertiesConfig(configFile);
-        assertEquals(PropertiesConfig.DEFAULT_USER, config.getUser());
+        assertEquals(config.getUser(), PropertiesConfig.DEFAULT_USER);
     }
 
     @Test
     public void testGetEnvironment() throws IOException {
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(configFile);
-        assertEquals(Environment.DEV, config.getEnvironment());
+        assertEquals(config.getEnvironment(), Environment.DEV);
     }
 
     @Test
     public void testGetDefaultEnvironment() throws IOException {
         Config config = new PropertiesConfig(configFile);
-        assertEquals(PropertiesConfig.DEFAULT_ENV, config.getEnvironment());
+        assertEquals(config.getEnvironment(), PropertiesConfig.DEFAULT_ENV);
     }
 
     @Test(expectedExceptions=InvalidEnvironmentException.class)
     public void testGetInvalidEnvironment() throws IOException {
-        System.setProperty(PropertiesConfig.ENV_KEY, "InvalidEnvironment");
+        System.setProperty("InvalidEnvironment", PropertiesConfig.ENV_KEY);
         new PropertiesConfig(configFile);
     }
 
     @Test
     public void testGet() throws IOException {
         Config config = new PropertiesConfig(configFile);
-        assertEquals("example.value", config.get("example.property"));
+        assertEquals(config.get("example.property"), "example.value");
     }
 
     @Test
     public void testGetEnvSpecific() throws IOException {
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(configFile);
-        assertEquals("example.value.for.dev", config.get("example.property"));
+        assertEquals(config.get("example.property"), "example.value.for.dev");
     }
 
     @Test
@@ -86,52 +86,52 @@ public class PropertiesConfigTest {
     @Test
     public void testGetInt() throws IOException {
         Config config = new PropertiesConfig(configFile, configFile);
-        assertEquals(2000, config.getInt("example.timeout"));
+        assertEquals(config.getInt("example.timeout"), 2000);
     }
 
     @Test
     public void testGetUserFromString() throws IOException {
         System.setProperty(PropertiesConfig.USER_KEY, "testGetUser");
         Config config = new PropertiesConfig(TEST_CONF_FILE);
-        assertEquals("testGetUser", config.getUser());
+        assertEquals(config.getUser(), "testGetUser");
     }
 
     @Test
     public void testGetDefaultUserFromString() throws IOException {
         Config config = new PropertiesConfig(TEST_CONF_FILE);
-        assertEquals(PropertiesConfig.DEFAULT_USER, config.getUser());
+        assertEquals(config.getUser(), PropertiesConfig.DEFAULT_USER);
     }
 
     @Test
     public void testGetEnvironmentFromString() throws IOException {
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(TEST_CONF_FILE);
-        assertEquals(Environment.DEV, config.getEnvironment());
+        assertEquals(config.getEnvironment(), Environment.DEV);
     }
 
     @Test
     public void testGetDefaultEnvironmentFromString() throws IOException {
         Config config = new PropertiesConfig(TEST_CONF_FILE);
-        assertEquals(PropertiesConfig.DEFAULT_ENV, config.getEnvironment());
+        assertEquals(config.getEnvironment(), PropertiesConfig.DEFAULT_ENV);
     }
 
     @Test(expectedExceptions=InvalidEnvironmentException.class)
     public void testGetInvalidEnvironmentFromString() throws IOException {
-        System.setProperty(PropertiesConfig.ENV_KEY, "InvalidEnvironment");
+        System.setProperty("InvalidEnvironment", PropertiesConfig.ENV_KEY);
         new PropertiesConfig(TEST_CONF_FILE);
     }
 
     @Test
     public void testGetFromString() throws IOException {
         Config config = new PropertiesConfig(TEST_CONF_FILE);
-        assertEquals("example.value", config.get("example.property"));
+        assertEquals(config.get("example.property"), "example.value");
     }
 
     @Test
     public void testGetEnvSpecificFromString() throws IOException {
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(TEST_CONF_FILE);
-        assertEquals("example.value.for.dev", config.get("example.property"));
+        assertEquals(config.get("example.property"), "example.value.for.dev");
     }
 
     @Test
@@ -143,7 +143,7 @@ public class PropertiesConfigTest {
     @Test
     public void testGetIntFromStringPath() throws IOException {
         Config config = new PropertiesConfig(TEST_CONF_FILE, configFile);
-        assertEquals(2000, config.getInt("example.timeout"));
+        assertEquals(config.getInt("example.timeout"), 2000);
     }
 
     @Test
@@ -151,15 +151,15 @@ public class PropertiesConfigTest {
         Config config = new PropertiesConfig(configFile, configFile);
         List<String> list = config.getList("example.property");
         assertNotNull(list);
-        assertEquals(1, list.size());
-        assertEquals("example.value", list.get(0));
+        assertEquals(list.size(), 1);
+        assertEquals(list.get(0), "example.value");
         list = config.getList("example.list");
         assertNotNull(list);
-        assertEquals(4, list.size());
-        assertEquals("a", list.get(0));
-        assertEquals("bc", list.get(1));
-        assertEquals("d", list.get(2));
-        assertEquals("e", list.get(3));
+        assertEquals(list.size(), 4);
+        assertEquals(list.get(0), "a");
+        assertEquals(list.get(1), "bc");
+        assertEquals(list.get(2), "d");
+        assertEquals(list.get(3), "e");
     }
 
     @Test
@@ -167,15 +167,15 @@ public class PropertiesConfigTest {
         Config config = new PropertiesConfig(TEST_CONF_FILE, configFile);
         List<String> list = config.getList("example.property");
         assertNotNull(list);
-        assertEquals(1, list.size());
-        assertEquals("example.value", list.get(0));
+        assertEquals(list.size(), 1);
+        assertEquals(list.get(0), "example.value");
         list = config.getList("example.list");
         assertNotNull(list);
-        assertEquals(4, list.size());
-        assertEquals("a", list.get(0));
-        assertEquals("bc", list.get(1));
-        assertEquals("d", list.get(2));
-        assertEquals("e", list.get(3));
+        assertEquals(list.size(), 4);
+        assertEquals(list.get(0), "a");
+        assertEquals(list.get(1), "bc");
+        assertEquals(list.get(2), "d");
+        assertEquals(list.get(3), "e");
     }
 
     @Test
@@ -183,7 +183,7 @@ public class PropertiesConfigTest {
         Path localPath = Paths.get(getClass().getClassLoader().getResource("conf/local.conf").toURI());
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         Config config = new PropertiesConfig(TEST_CONF_FILE, localPath);
-        assertEquals("local.value.for.dev", config.get("example.property"));
+        assertEquals(config.get("example.property"), "local.value.for.dev");
     }
 
     @Test
@@ -192,7 +192,7 @@ public class PropertiesConfigTest {
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         System.setProperty("example.property", "override.value.for.dev");
         Config config = new PropertiesConfig(TEST_CONF_FILE, localPath);
-        assertEquals("override.value.for.dev", config.get("example.property"));
+        assertEquals(config.get("example.property"), "override.value.for.dev");
         System.clearProperty("example.property");
     }
 
@@ -202,7 +202,7 @@ public class PropertiesConfigTest {
         System.setProperty(PropertiesConfig.ENV_KEY, "dev");
         System.setProperty("dev.example.property", "override.value.for.dev");
         Config config = new PropertiesConfig(TEST_CONF_FILE, localPath);
-        assertEquals("override.value.for.dev", config.get("example.property"));
+        assertEquals(config.get("example.property"), "override.value.for.dev");
         System.clearProperty("dev.example.property");
     }
 }
