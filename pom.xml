@@ -5,7 +5,7 @@
 
     <groupId>org.sagebionetworks</groupId>
     <artifactId>bridge-base</artifactId>
-    <version>2.7.7</version>
+    <version>2.7.8</version>
 
     <properties>
         <aws.version>1.10.56</aws.version>
@@ -99,6 +99,11 @@
             <version>${bouncy.castle.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.sagebionetworks</groupId>
+            <artifactId>synapseJavaClient</artifactId>
+            <version>206.0</version>
+        </dependency>
+        <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
             <version>2.8.0</version>
@@ -136,6 +141,14 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>sagebionetworks-libs-releases-local</id>
+            <name>sagebionetworks-libs-releases-local</name>
+            <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
@@ -185,6 +198,7 @@
                 <configuration>
                     <excludes>
                         <!-- no point in testing exceptions, since they are entirely boilerplate code -->
+                        <exclude>org/sagebionetworks/bridge/exceptions/*</exclude>
                         <exclude>org/sagebionetworks/bridge/config/*Exception.class</exclude>
                         <exclude>org/sagebionetworks/bridge/dynamodb/*Exception.class</exclude>
                         <exclude>org/sagebionetworks/bridge/lock/*Exception.class</exclude>
@@ -207,7 +221,7 @@
                                 <limit>
                                     <counter>BRANCH</counter>
                                     <value>COVEREDRATIO</value>
-                                    <minimum>0.70</minimum>
+                                    <minimum>0.75</minimum>
                                 </limit>
                             </limits>
                         </rule>
