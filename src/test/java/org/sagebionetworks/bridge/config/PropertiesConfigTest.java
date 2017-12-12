@@ -60,7 +60,7 @@ public class PropertiesConfigTest {
 
     @Test(expectedExceptions=InvalidEnvironmentException.class)
     public void testGetInvalidEnvironment() throws IOException {
-        System.setProperty("InvalidEnvironment", PropertiesConfig.ENV_KEY);
+        System.setProperty(PropertiesConfig.ENV_KEY, "InvalidEnvironment");
         new PropertiesConfig(configFile);
     }
 
@@ -117,7 +117,7 @@ public class PropertiesConfigTest {
 
     @Test(expectedExceptions=InvalidEnvironmentException.class)
     public void testGetInvalidEnvironmentFromString() throws IOException {
-        System.setProperty("InvalidEnvironment", PropertiesConfig.ENV_KEY);
+        System.setProperty(PropertiesConfig.ENV_KEY, "InvalidEnvironment");
         new PropertiesConfig(TEST_CONF_FILE);
     }
 
