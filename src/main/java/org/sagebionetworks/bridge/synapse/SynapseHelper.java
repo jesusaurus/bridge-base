@@ -274,20 +274,34 @@ public class SynapseHelper {
     }
 
     /**
+     * <p>
      * Helper method to detect when a schema changes and updates the Synapse table accordingly. Will reject schema
      * changes that delete or modify columns. Optimized so if no columns were inserted, it won't modify the table.
+     * </p>
+     * <p>
+     * The mergeDeletedFields flag controls how this method handles deleted fields. If a field exists in the table, but
+     * is missing from the newColumnList, that field is flagged as a "deleted field". If mergeDeletedFields is set to
+     * true, this method will automatically append those fields to the newColumnList, thereby preserving those fields
+     * in the table. If mergeDeletedFields is set to false, this method will throw an error. Note that modified fields
+     * will throw an error no matter what.
+     * </p>
      *
      * @param synapseTableId
      *         table to update
      * @param newColumnList
      *         columns to update the table with
+     * @param mergeDeletedFields
+     *         true to merge deleted fields, false to throw an error
      * @throws BridgeSynapseException
      *         if the column changes are incompatible
      * @throws SynapseException
      *         if the underlying Synapse calls fail
      */
-    public void safeUpdateTable(String synapseTableId, List<ColumnModel> newColumnList) throws BridgeSynapseException,
-            SynapseException {
+    public void safeUpdateTable(String synapseTableId, List<ColumnModel> newColumnList, boolean mergeDeletedFields)
+            throws BridgeSynapseException, SynapseException {
+        // Copy newColumnList, in case it's immutable or otherwise has reason to not be modified.
+        newColumnList = new ArrayList<>(newColumnList);
+
         // Get existing columns from table.
         List<ColumnModel> existingColumnList = getColumnModelsForTableWithRetry(synapseTableId);
 
@@ -302,9 +316,13 @@ public class SynapseHelper {
         // Were columns deleted? If so, log an error and shortcut. (Don't modify the table.)
         boolean shouldThrow = false;
         if (!deletedColumnNameSet.isEmpty()) {
-            LOG.error("Table " + synapseTableId + " has deleted columns: " + COMMA_SPACE_JOINER.join(
-                    deletedColumnNameSet));
-            shouldThrow = true;
+            if (mergeDeletedFields) {
+                deletedColumnNameSet.stream().map(existingColumnsByName::get).forEach(newColumnList::add);
+            } else {
+                LOG.error("Table " + synapseTableId + " has deleted columns: " + COMMA_SPACE_JOINER.join(
+                        deletedColumnNameSet));
+                shouldThrow = true;
+            }
         }
 
         // Similarly, were any columns changed?
