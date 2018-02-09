@@ -23,6 +23,7 @@ import org.testng.annotations.Test;
 
 import org.sagebionetworks.bridge.exceptions.BridgeSynapseNonRetryableException;
 
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class SynapseHelperSafeUpdateTableTest {
     private static final String SYNAPSE_TABLE_ID = "dummy-synapse-table-id";
 
@@ -49,7 +50,7 @@ public class SynapseHelperSafeUpdateTableTest {
     public void rejectDelete() throws Exception {
         // New column is missing "foo".
         List<ColumnModel> newColumnList = ImmutableList.of(makeColumn("bar", null));
-        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList);
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, false);
     }
 
     @Test(expectedExceptions = BridgeSynapseNonRetryableException.class, expectedExceptionsMessageRegExp =
@@ -65,7 +66,7 @@ public class SynapseHelperSafeUpdateTableTest {
 
         newColumnList.add(makeColumn("bar", null));
 
-        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList);
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, false);
     }
 
     @Test(expectedExceptions = BridgeSynapseNonRetryableException.class, expectedExceptionsMessageRegExp =
@@ -82,7 +83,7 @@ public class SynapseHelperSafeUpdateTableTest {
 
         newColumnList.add(makeColumn("bar", null));
 
-        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList);
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, false);
     }
 
     @Test
@@ -90,7 +91,7 @@ public class SynapseHelperSafeUpdateTableTest {
         // Swap foo and bar. No update.
         List<ColumnModel> newColumnList = ImmutableList.of(makeColumn("bar", null),
                 makeColumn("foo", null));
-        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList);
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, false);
 
         // Verify dependent calls (or lack thereof)
         verify(synapseHelper, never()).createColumnModelsWithRetry(any());
@@ -109,7 +110,7 @@ public class SynapseHelperSafeUpdateTableTest {
         doReturn(createdColumnList).when(synapseHelper).createColumnModelsWithRetry(newColumnList);
 
         // Execute
-        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList);
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, false);
 
         // We call createColumnModels() with all of the columns.
         verify(synapseHelper).createColumnModelsWithRetry(newColumnList);
@@ -122,6 +123,56 @@ public class SynapseHelperSafeUpdateTableTest {
         TableSchemaChangeRequest request = requestCaptor.getValue();
         assertEquals(request.getEntityId(), SYNAPSE_TABLE_ID);
         assertEquals(request.getOrderedColumnIds(), ImmutableList.of("bar-id", "foo-id", "baz-id"));
+
+        List<ColumnChange> changeList = request.getChanges();
+        assertEquals(changeList.size(), 1);
+        assertNull(changeList.get(0).getOldColumnId());
+        assertEquals(changeList.get(0).getNewColumnId(), "baz-id");
+    }
+
+    @Test
+    public void deleteFieldWithMergeFlag() throws Exception {
+        // Delete "foo" from newColumnList, but use the mergeDeletedFields flag, so we ignore deleted fields.
+        List<ColumnModel> newColumnList = ImmutableList.of(makeColumn("bar", null));
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, true);
+
+        // Verify dependent calls (or lack thereof)
+        verify(synapseHelper, never()).createColumnModelsWithRetry(any());
+        verify(synapseHelper, never()).updateTableColumns(any(), any());
+    }
+
+    @Test
+    public void deleteAndAddFieldsWithMergeFlag() throws Exception {
+        // Delete foo, add baz. (newColumnList contains bar and baz.)
+        List<ColumnModel> newColumnList = ImmutableList.of(makeColumn("bar", null),
+                makeColumn("baz", null));
+
+        // We create these columns (which are the same, but have column IDs).
+        List<ColumnModel> createdColumnList = ImmutableList.of(makeColumn("bar", "bar-id"),
+                makeColumn("baz", "baz-id"), makeColumn("foo", "foo-id"));
+        doReturn(createdColumnList).when(synapseHelper).createColumnModelsWithRetry(any());
+
+        // Execute
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, true);
+
+        // Call to createColumnModels includes bar, baz, and foo.
+        ArgumentCaptor<List> columnsToCreateCaptor = ArgumentCaptor.forClass(List.class);
+        verify(synapseHelper).createColumnModelsWithRetry(columnsToCreateCaptor.capture());
+        List<ColumnModel> columnsToCreateList = columnsToCreateCaptor.getValue();
+
+        assertEquals(columnsToCreateList.size(), 3);
+        assertEquals(columnsToCreateList.get(0).getName(), "bar");
+        assertEquals(columnsToCreateList.get(1).getName(), "baz");
+        assertEquals(columnsToCreateList.get(2).getName(), "foo");
+
+        // Verify update table call.
+        ArgumentCaptor<TableSchemaChangeRequest> requestCaptor = ArgumentCaptor.forClass(
+                TableSchemaChangeRequest.class);
+        verify(synapseHelper).updateTableColumns(requestCaptor.capture(), eq(SYNAPSE_TABLE_ID));
+
+        TableSchemaChangeRequest request = requestCaptor.getValue();
+        assertEquals(request.getEntityId(), SYNAPSE_TABLE_ID);
+        assertEquals(request.getOrderedColumnIds(), ImmutableList.of("bar-id", "baz-id", "foo-id"));
 
         List<ColumnChange> changeList = request.getChanges();
         assertEquals(changeList.size(), 1);
@@ -145,7 +196,7 @@ public class SynapseHelperSafeUpdateTableTest {
         doReturn(createdColumnList).when(synapseHelper).createColumnModelsWithRetry(newColumnList);
 
         // Execute
-        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList);
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, false);
 
         // We call createColumnModels() with all of the columns.
         verify(synapseHelper).createColumnModelsWithRetry(newColumnList);
@@ -182,7 +233,7 @@ public class SynapseHelperSafeUpdateTableTest {
         doReturn(createdColumnList).when(synapseHelper).createColumnModelsWithRetry(newColumnList);
 
         // Execute
-        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList);
+        synapseHelper.safeUpdateTable(SYNAPSE_TABLE_ID, newColumnList, false);
 
         // We call createColumnModels() with all of the columns.
         verify(synapseHelper).createColumnModelsWithRetry(newColumnList);
