@@ -30,6 +30,19 @@ public class JedisTransaction implements AutoCloseable {
         return this;
     }
 
+    /**
+     * Increments the given key, or sets it to 1 if the key is not in Redis. The value returned by exec() will be the
+     * new value after the increment.
+     */
+    public JedisTransaction incr(final String key) {
+        transaction.incr(key);
+        return this;
+    }
+
+    /**
+     * Executes the transaction. Returns a list of results, corresponding to each action in the transaction, in the
+     * order they were executed.
+     */
     public List<Object> exec() {
         return transaction.exec();
     }

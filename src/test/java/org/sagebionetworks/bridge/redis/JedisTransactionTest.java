@@ -18,8 +18,9 @@ public class JedisTransactionTest {
         Jedis jedis = mock(Jedis.class);
         when(jedis.multi()).thenReturn(transaction);
         try (JedisTransaction jt = new JedisTransaction(jedis)) {
-            jt.setex("k1", 10, "v1").expire("k1", 15).del("k2").exec();
-            inOrder.verify(transaction, times(1)).setex("k1", 10, "v1");
+            jt.setex("k1", 10, "2").incr("k1").expire("k1", 15).del("k2").exec();
+            inOrder.verify(transaction, times(1)).setex("k1", 10, "2");
+            inOrder.verify(transaction, times(1)).incr("k1");
             inOrder.verify(transaction, times(1)).expire("k1", 15);
             inOrder.verify(transaction, times(1)).del("k2");
             inOrder.verify(transaction, times(1)).exec();
