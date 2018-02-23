@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.crypto;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.cert.CertificateEncodingException;
 
 import org.bouncycastle.cms.CMSException;
@@ -13,4 +14,7 @@ public interface CmsEncryptor {
     byte[] encrypt(byte[] bytes) throws CMSException, IOException;
 
     byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException;
+
+    // todo doc
+    InputStream decrypt(InputStream source) throws CertificateEncodingException, CMSException, IOException;
 }

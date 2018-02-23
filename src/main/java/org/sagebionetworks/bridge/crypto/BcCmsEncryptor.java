@@ -2,12 +2,15 @@ package org.sagebionetworks.bridge.crypto;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 
+import com.google.common.io.ByteStreams;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
@@ -57,12 +60,20 @@ public final class BcCmsEncryptor implements CmsEncryptor {
     @Override
     public byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException {
         checkNotNull(bytes);
-        CMSEnvelopedData envelopedData = new CMSEnvelopedData(bytes);
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+                InputStream decryptedInputStream = decrypt(byteArrayInputStream)) {
+            return ByteStreams.toByteArray(decryptedInputStream);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public InputStream decrypt(InputStream source) throws CertificateEncodingException, CMSException, IOException {
+        CMSEnvelopedData envelopedData = new CMSEnvelopedData(source);
         X509CertificateHolder certHolder = new X509CertificateHolder(cert.getEncoded());
         RecipientId recipientId = new KeyTransRecipientId(certHolder.getIssuer(), certHolder.getSerialNumber());
         RecipientInformation recInfo = envelopedData.getRecipientInfos().get(recipientId);
         Recipient recipient = new JceKeyTransEnvelopedRecipient(privateKey);
-        byte[] decrypted = recInfo.getContent(recipient);
-        return decrypted;
+        return recInfo.getContentStream(recipient).getContentStream();
     }
 }
