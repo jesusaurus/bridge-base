@@ -15,6 +15,9 @@ public interface CmsEncryptor {
 
     byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException;
 
-    // todo doc
-    InputStream decrypt(InputStream source) throws CertificateEncodingException, CMSException, IOException;
+    /**
+     * Takes in a stream of encrypted data and outputs a stream of decrypted data. The caller is responsible for
+     * closing both streams.
+     */
+    InputStream decrypt(InputStream encryptedStream) throws CertificateEncodingException, CMSException, IOException;
 }
