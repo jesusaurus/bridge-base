@@ -242,7 +242,25 @@ public class JedisOps {
             }
         }.execute();
     }
+    
+    public Long sadd(final String key, String... members) {
+        return new AbstractJedisTemplate<Long>() {
+            @Override
+            Long execute(Jedis jedis) {
+                return jedis.sadd(key, members);
+            }
+        }.execute();
+    }
 
+    public Set<String> smembers(final String key) {
+        return new AbstractJedisTemplate<Set<String>>() {
+            @Override
+            Set<String> execute(Jedis jedis) {
+                return jedis.smembers(key);
+            }
+        }.execute();
+    }
+    
     // Transaction
     /**
      * Starts a transaction with the optional list of keys to watch.
