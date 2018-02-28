@@ -106,4 +106,16 @@ public class JedisOpsTest {
         ops.zrem("key", "m1", "m2");
         verify(jedis, times(1)).zrem("key", "m1", "m2");
     }
+    
+    @Test
+    public void testSetAdd() { 
+        ops.sadd("key", "m1", "m2");
+        verify(jedis, times(1)).sadd("key", "m1", "m2");
+    }
+    
+    @Test
+    public void testSetMembers() { 
+        ops.smembers("key");
+        verify(jedis, times(1)).smembers("key");
+    }
 }
