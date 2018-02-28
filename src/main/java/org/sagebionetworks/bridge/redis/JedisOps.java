@@ -243,6 +243,18 @@ public class JedisOps {
         }.execute();
     }
     
+    /**
+     * Add the provided members to a set under the given key. If the set does not exist under 
+     * that key, it will be created.
+     * 
+     * @param key
+     *      the under which to store the members as a set of strings
+     * @param members
+     *      the strings to store in the set
+     * @return added 
+     *      the number of items added to the set, not including any elements that were already 
+     *      present in the set
+     */
     public Long sadd(final String key, String... members) {
         return new AbstractJedisTemplate<Long>() {
             @Override
@@ -252,6 +264,15 @@ public class JedisOps {
         }.execute();
     }
 
+    /**
+     * Retrieve the set of strings stored under a particular key. Returns an empty set if the 
+     * key is not mapped to a set of strings.
+     * 
+     * @param key
+     *      the key referencing the set
+     * @return
+     *      the set of strings
+     */
     public Set<String> smembers(final String key) {
         return new AbstractJedisTemplate<Set<String>>() {
             @Override
