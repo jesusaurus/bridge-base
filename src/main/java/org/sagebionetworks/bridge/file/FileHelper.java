@@ -14,6 +14,7 @@ import java.io.OutputStreamWriter;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,14 @@ public class FileHelper {
         if (!success) {
             LOG.error("Failed to delete directory: " + dir.getAbsolutePath());
         }
+    }
+
+    /**
+     * Deletes the specified directory recursively, used if you want to force delete a directory even if it's not
+     * empty.
+     */
+    public void deleteDirRecursively(File dir) throws IOException {
+        FileUtils.deleteDirectory(dir);
     }
 
     /** Delete the specified file. This is used so that mock file systems can keep track of files. */
