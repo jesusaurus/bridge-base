@@ -3,6 +3,7 @@ package org.sagebionetworks.bridge.dynamodb;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition;
 import com.amazonaws.services.dynamodbv2.document.api.QueryApi;
+import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
 
 /**
  * In the Dynamo Document API, Table.query() and Index.query() return an ItemCollection. While ItemCollection
@@ -19,5 +20,10 @@ public class DynamoQueryHelper {
     public Iterable<Item> query(QueryApi queryable, String hashKeyName, Object hashKeyValue,
             RangeKeyCondition rangeKeyCondition) {
         return queryable.query(hashKeyName, hashKeyValue, rangeKeyCondition);
+    }
+
+    /** Query a DDB object using an arbitrary query. */
+    public Iterable<Item> query(QueryApi queryable, QuerySpec query) {
+        return queryable.query(query);
     }
 }
