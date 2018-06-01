@@ -234,13 +234,13 @@ public class PropertiesConfig implements Config {
     }
 
     private String read(final String key, final Properties properties) {
-        final String sysVal = sysReader.read(key);
-        if (sysVal != null) {
-            return sysVal;
-        }
         final String envVal = envReader.read(key);
         if (envVal != null) {
             return envVal;
+        }
+        final String sysVal = sysReader.read(key);
+        if (sysVal != null) {
+            return sysVal;
         }
         return properties.getProperty(key);
     }
@@ -270,9 +270,9 @@ public class PropertiesConfig implements Config {
         }
         // Overwrite with environment variables and system properties
         for (final String key : properties.stringPropertyNames()) {
-            String value = sysReader.read(key);
+            String value = envReader.read(key);
             if (value == null) {
-                value = envReader.read(key);
+                value = sysReader.read(key);
             }
             if (value != null) {
                 if (key.startsWith(envName + ".")) {
