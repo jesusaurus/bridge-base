@@ -189,4 +189,26 @@ public class S3HelperTest {
         byte[] writtenBytes = ByteStreams.toByteArray(writtenStream);
         assertEquals(new String(writtenBytes, Charsets.UTF_8), "foo\nbar\nbaz");
     }
+    
+    @Test
+    public void writeBytesToS3WithMetadata() throws Exception {
+        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
+        S3Helper testS3Helper = new S3Helper();
+        testS3Helper.setS3Client(mockS3Client);
+
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        byte[] data = "[1,2,3]".getBytes(Charsets.UTF_8);
+        
+        testS3Helper.writeBytesToS3("test-bucket", "test-key", data, metadata);
+        
+        ArgumentCaptor<InputStream> streamCaptor = ArgumentCaptor.forClass(InputStream.class);
+        
+        verify(mockS3Client).putObject(eq("test-bucket"), eq("test-key"), streamCaptor.capture(), eq(metadata));
+        
+        InputStream writtenStream = streamCaptor.getValue();
+        byte[] writtenBytes = ByteStreams.toByteArray(writtenStream);
+        assertEquals(new String(writtenBytes, Charsets.UTF_8), "[1,2,3]");
+    }
+    
 }
