@@ -14,6 +14,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -30,7 +31,7 @@ public class S3Helper {
     private static final Joiner LINES_JOINER = Joiner.on('\n').useForNull("");
 
     private AmazonS3Client s3Client;
-
+    
     /**
      * S3 Client. This is configured by Spring. We don't use the Autowired annotation because there are multiple S3
      * clients.
@@ -129,6 +130,28 @@ public class S3Helper {
         byte[] bytes = readS3FileAsBytes(bucket, key);
         return new String(bytes, Charsets.UTF_8);
     }
+    
+    /**
+     * Upload the given bytes as an S3 file to S3.
+     *
+     * @param bucket
+     *         bucket to upload to
+     * @param key
+     *         key (filename) to upload to
+     * @param data
+     *         bytes to upload
+     * @param metadata
+     *         object metadata for put operation
+     * @throws IOException
+     *         if uploading the byte stream fails
+     */
+    @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
+            randomize = false)
+    public void writeBytesToS3(String bucket, String key, byte[] data, ObjectMetadata metadata) throws IOException {
+        try (InputStream dataInputStream = new ByteArrayInputStream(data)) {
+            s3Client.putObject(bucket, key, dataInputStream, metadata);
+        }
+    }
 
     /**
      * Upload the given bytes as an S3 file to S3.
@@ -142,12 +165,8 @@ public class S3Helper {
      * @throws IOException
      *         if uploading the byte stream fails
      */
-    @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
-            randomize = false)
     public void writeBytesToS3(String bucket, String key, byte[] data) throws IOException {
-        try (InputStream dataInputStream = new ByteArrayInputStream(data)) {
-            s3Client.putObject(bucket, key, dataInputStream, null);
-        }
+        writeBytesToS3(bucket, key, data, null);
     }
 
     /**
