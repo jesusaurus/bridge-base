@@ -20,6 +20,7 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.google.common.base.Charsets;
@@ -171,6 +172,30 @@ public class S3HelperTest {
         verify(mockS3Client).putObject("write-bucket", "write-file-key", mockFile);
     }
 
+    @Test
+    public void writeFileWithMetadata() throws Exception {
+        // set up mock and test helper
+        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
+        S3Helper s3Helper = new S3Helper();
+        s3Helper.setS3Client(mockS3Client);
+
+        ArgumentCaptor<PutObjectRequest> putObjectRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+        
+        // execute and validate
+        File mockFile = mock(File.class);
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        s3Helper.writeFileToS3("write-bucket", "write-file-key", mockFile, metadata);
+        verify(mockS3Client).putObject(putObjectRequestCaptor.capture());
+        
+        PutObjectRequest request = putObjectRequestCaptor.getValue();
+        assertEquals("write-bucket", request.getBucketName());
+        assertEquals("write-file-key", request.getKey());
+        assertEquals(mockFile, request.getFile());
+        assertEquals(metadata, request.getMetadata());
+        assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, request.getMetadata().getSSEAlgorithm());
+    }
+    
     @Test
     public void writeLines() throws Exception {
         // set up mock and test helper
