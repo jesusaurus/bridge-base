@@ -15,6 +15,7 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -187,6 +188,28 @@ public class S3Helper {
         s3Client.putObject(bucket, key, file);
     }
 
+    /**
+     * Pass through to S3 PutObject. This exists mainly as a convenience, so we can do all S3 operations through the
+     * helper instead of using the S3 client directly for some operations. This also enables us to add retry logic
+     * later.
+     *
+     * @param bucket
+     *         bucket to upload to
+     * @param key
+     *         key (filename) to upload to
+     * @param file
+     *         file to upload
+     * @param metadata
+     *         metadata to be associated with this upload (cannot be null)
+     */
+    @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
+            randomize = false)
+    public void writeFileToS3(String bucket, String key, File file, ObjectMetadata metadata) {
+        PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, key, file);
+        putObjectRequest.setMetadata(metadata);
+        s3Client.putObject(putObjectRequest);
+    }
+    
     /**
      * Upload the given lines as a file to S3. The lines will be joined by a single newline (\n), and then streamed to
      * S3.
