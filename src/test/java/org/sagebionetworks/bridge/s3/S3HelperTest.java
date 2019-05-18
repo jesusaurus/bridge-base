@@ -9,6 +9,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertSame;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -68,6 +69,22 @@ public class S3HelperTest {
         // execute and validate
         URL retval = s3Helper.generatePresignedUrl("test-bucket", "test-key", new DateTime(42), HttpMethod.GET);
         assertEquals(retval.toString(), "http://www.example.com/");
+    }
+
+    @Test
+    public void getObjectMetadata() {
+        // Mock S3 client.
+        ObjectMetadata objectMetadata = new ObjectMetadata();
+        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
+        when(mockS3Client.getObjectMetadata("test-bucket", "test-key")).thenReturn(objectMetadata);
+
+        // Set up S3 Helper.
+        S3Helper s3Helper = new S3Helper();
+        s3Helper.setS3Client(mockS3Client);
+
+        // Execute and validate.
+        ObjectMetadata retval = s3Helper.getObjectMetadata("test-bucket", "test-key");
+        assertSame(retval, objectMetadata);
     }
 
     @Test
