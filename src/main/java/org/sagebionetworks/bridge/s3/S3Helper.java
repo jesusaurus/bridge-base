@@ -78,6 +78,21 @@ public class S3Helper {
     }
 
     /**
+     * Get the object metadata without downloading the actual S3 file.
+     *
+     * @param bucket
+     *         S3 bucket to read from, must be non-null and non-empty
+     * @param key
+     *         S3 key (filename), must be non-null and non-empty
+     * @return the S3 file's metadata
+     */
+    @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
+            randomize = false)
+    public ObjectMetadata getObjectMetadata(String bucket, String key) {
+        return s3Client.getObjectMetadata(bucket, key);
+    }
+
+    /**
      * Read the given S3 file as a byte array in memory.
      *
      * @param bucket
