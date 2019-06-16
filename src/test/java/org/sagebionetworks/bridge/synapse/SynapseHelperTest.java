@@ -14,9 +14,12 @@ import static org.testng.Assert.assertTrue;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import org.mockito.ArgumentCaptor;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
@@ -31,6 +34,7 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -73,7 +77,9 @@ public class SynapseHelperTest {
         doReturn(new AccessControlList()).when(synapseHelper).createAclWithRetry(aclCaptor.capture());
 
         // execute and validate
-        String retVal = synapseHelper.createTableWithColumnsAndAcls(columnList, 1234, 5678,
+        Set<Long> readOnlyPrincipalSet = ImmutableSet.of(1111L, 2222L);
+        Set<Long> adminPrincipalSet = ImmutableSet.of(3333L, 4444L);
+        String retVal = synapseHelper.createTableWithColumnsAndAcls(columnList, readOnlyPrincipalSet, adminPrincipalSet,
                 "test-project", "My Table");
         assertEquals(retVal, "test-table");
 
@@ -88,17 +94,17 @@ public class SynapseHelperTest {
         assertEquals(acl.getId(), "test-table");
 
         Set<ResourceAccess> resourceAccessSet = acl.getResourceAccess();
-        assertEquals(resourceAccessSet.size(), 2);
+        assertEquals(resourceAccessSet.size(), 4);
+        Map<Long, ResourceAccess> resourceAccessByPrincipalId = Maps.uniqueIndex(resourceAccessSet,
+                ResourceAccess::getPrincipalId);
+        assertEquals(resourceAccessByPrincipalId.size(), 4);
 
-        ResourceAccess exporterOwnerAccess = new ResourceAccess();
-        exporterOwnerAccess.setPrincipalId(5678L);
-        exporterOwnerAccess.setAccessType(SynapseHelper.ACCESS_TYPE_ALL);
-        assertTrue(resourceAccessSet.contains(exporterOwnerAccess));
-
-        ResourceAccess dataAccessTeamAccess = new ResourceAccess();
-        dataAccessTeamAccess.setPrincipalId(1234L);
-        dataAccessTeamAccess.setAccessType(SynapseHelper.ACCESS_TYPE_READ);
-        assertTrue(resourceAccessSet.contains(dataAccessTeamAccess));
+        assertEquals(resourceAccessByPrincipalId.get(1111L).getAccessType(), SynapseHelper.ACCESS_TYPE_READ);
+        assertEquals(resourceAccessByPrincipalId.get(2222L).getAccessType(), SynapseHelper.ACCESS_TYPE_READ);
+        assertEquals(resourceAccessByPrincipalId.get(3333L).getAccessType(),
+                ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS);
+        assertEquals(resourceAccessByPrincipalId.get(4444L).getAccessType(),
+                ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS);
     }
 
     @Test
