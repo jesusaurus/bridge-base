@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +52,6 @@ public class SynapseHelper {
     private static final Joiner COMMA_SPACE_JOINER = Joiner.on(", ").useForNull("");
 
     // Package-scoped for unit tests.
-    static final Set<ACCESS_TYPE> ACCESS_TYPE_ALL = ImmutableSet.copyOf(ACCESS_TYPE.values());
     static final Set<ACCESS_TYPE> ACCESS_TYPE_READ = ImmutableSet.of(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
 
     // Map of allowed column type changes. Key is the old type. Value is the new type.
@@ -142,15 +142,15 @@ public class SynapseHelper {
     }
 
     /**
-     * Helper method to create a table with the specified columns and set up ACLs. The data access team is set with
-     * read permissions and the principal ID is set with all permissions.
+     * Helper method to create a table with the specified columns and set up ACLs. The read-only principal IDs are set
+     * with read and download permissions, while the admin principal IDs are set with admin permissions.
      *
      * @param columnList
      *         list of column models to create on the table
-     * @param dataAccessTeamId
-     *         data access team ID, set with read permissions
-     * @param principalId
-     *         principal ID, set with all permissions
+     * @param readOnlyPrincipalIdSet
+     *         principal IDs (users or teams) that should have read permissions
+     * @param adminPrincipalIdSet
+     *         principal IDs (users or teams), that should have admin permissions
      * @param projectId
      *         Synapse project to create the table in
      * @param tableName
@@ -161,8 +161,9 @@ public class SynapseHelper {
      * @throws SynapseException
      *         if the underlying Synapse calls fail
      */
-    public String createTableWithColumnsAndAcls(List<ColumnModel> columnList, long dataAccessTeamId,
-            long principalId, String projectId, String tableName) throws BridgeSynapseException, SynapseException {
+    public String createTableWithColumnsAndAcls(List<ColumnModel> columnList, Set<Long> readOnlyPrincipalIdSet,
+            Set<Long> adminPrincipalIdSet, String projectId, String tableName) throws BridgeSynapseException,
+            SynapseException {
         // Create columns
         List<ColumnModel> createdColumnList = createColumnModelsWithRetry(columnList);
         if (columnList.size() != createdColumnList.size()) {
@@ -189,15 +190,19 @@ public class SynapseHelper {
         // IMPORTANT: Do not modify ResourceAccess objects after adding them to the set. This will break the set.
         Set<ResourceAccess> resourceAccessSet = new HashSet<>();
 
-        ResourceAccess exporterOwnerAccess = new ResourceAccess();
-        exporterOwnerAccess.setPrincipalId(principalId);
-        exporterOwnerAccess.setAccessType(ACCESS_TYPE_ALL);
-        resourceAccessSet.add(exporterOwnerAccess);
+        for (long adminPrincipalId : adminPrincipalIdSet) {
+            ResourceAccess adminAccess = new ResourceAccess();
+            adminAccess.setPrincipalId(adminPrincipalId);
+            adminAccess.setAccessType(ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS);
+            resourceAccessSet.add(adminAccess);
+        }
 
-        ResourceAccess dataAccessTeamAccess = new ResourceAccess();
-        dataAccessTeamAccess.setPrincipalId(dataAccessTeamId);
-        dataAccessTeamAccess.setAccessType(ACCESS_TYPE_READ);
-        resourceAccessSet.add(dataAccessTeamAccess);
+        for (long readOnlyPrincipalId : readOnlyPrincipalIdSet) {
+            ResourceAccess readOnlyAccess = new ResourceAccess();
+            readOnlyAccess.setPrincipalId(readOnlyPrincipalId);
+            readOnlyAccess.setAccessType(ACCESS_TYPE_READ);
+            resourceAccessSet.add(readOnlyAccess);
+        }
 
         AccessControlList acl = new AccessControlList();
         acl.setId(synapseTableId);
