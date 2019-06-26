@@ -193,7 +193,7 @@ public class SynapseHelper {
         for (long adminPrincipalId : adminPrincipalIdSet) {
             ResourceAccess adminAccess = new ResourceAccess();
             adminAccess.setPrincipalId(adminPrincipalId);
-            adminAccess.setAccessType(ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS);
+            adminAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
             resourceAccessSet.add(adminAccess);
         }
 

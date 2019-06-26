@@ -102,9 +102,9 @@ public class SynapseHelperTest {
         assertEquals(resourceAccessByPrincipalId.get(1111L).getAccessType(), SynapseHelper.ACCESS_TYPE_READ);
         assertEquals(resourceAccessByPrincipalId.get(2222L).getAccessType(), SynapseHelper.ACCESS_TYPE_READ);
         assertEquals(resourceAccessByPrincipalId.get(3333L).getAccessType(),
-                ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS);
+                ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
         assertEquals(resourceAccessByPrincipalId.get(4444L).getAccessType(),
-                ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS);
+                ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
     }
 
     @Test
