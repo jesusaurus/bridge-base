@@ -14,6 +14,7 @@ import com.google.common.io.ByteStreams;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedDataGenerator;
+import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSProcessableByteArray;
 import org.bouncycastle.cms.CMSTypedData;
@@ -69,7 +70,7 @@ public final class BcCmsEncryptor implements CmsEncryptor {
     /** {@inheritDoc} */
     @Override
     public InputStream decrypt(InputStream encryptedStream) throws CertificateEncodingException, CMSException, IOException {
-        CMSEnvelopedData envelopedData = new CMSEnvelopedData(encryptedStream);
+        CMSEnvelopedDataParser envelopedData = new CMSEnvelopedDataParser(encryptedStream);
         X509CertificateHolder certHolder = new X509CertificateHolder(cert.getEncoded());
         RecipientId recipientId = new KeyTransRecipientId(certHolder.getIssuer(), certHolder.getSerialNumber());
         RecipientInformation recInfo = envelopedData.getRecipientInfos().get(recipientId);
