@@ -164,6 +164,11 @@ public class S3Helper {
     @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
             randomize = false)
     public void writeBytesToS3(String bucket, String key, byte[] data, ObjectMetadata metadata) throws IOException {
+        if (metadata == null) {
+            metadata = new ObjectMetadata();
+        }
+        metadata.setContentLength(data.length);
+
         try (InputStream dataInputStream = new ByteArrayInputStream(data)) {
             s3Client.putObject(bucket, key, dataInputStream, metadata);
         }

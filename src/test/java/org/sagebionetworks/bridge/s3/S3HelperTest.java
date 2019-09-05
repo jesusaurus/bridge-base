@@ -1,7 +1,6 @@
 package org.sagebionetworks.bridge.s3;
 
 import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -29,19 +28,29 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import org.joda.time.DateTime;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class S3HelperTest {
     // Test strategy is that given a mock input stream from a mock S3 object, the S3Helper can still turn that
     // input stream into a byte array or a string.
 
+    @Mock
+    AmazonS3Client mockS3Client;
+
+    @InjectMocks
+    S3Helper s3Helper;
+
+    @BeforeMethod
+    public void setup() {
+        MockitoAnnotations.initMocks(this);
+    }
+
     @Test
     public void downloadS3File() {
-        // Mock S3 client. Setup S3 helper
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
-        S3Helper s3Helper = new S3Helper();
-        s3Helper.setS3Client(mockS3Client);
-
         // execute
         File mockFile = mock(File.class);
         s3Helper.downloadS3File("test-bucket", "test-key", mockFile);
@@ -58,13 +67,8 @@ public class S3HelperTest {
     @Test
     public void generatePresignedUrl() throws Exception {
         // mock S3 client
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
         when(mockS3Client.generatePresignedUrl("test-bucket", "test-key", new DateTime(42).toDate(), HttpMethod.GET))
                 .thenReturn(new URL("http://www.example.com/"));
-
-        // set up test S3 helper
-        S3Helper s3Helper = new S3Helper();
-        s3Helper.setS3Client(mockS3Client);
 
         // execute and validate
         URL retval = s3Helper.generatePresignedUrl("test-bucket", "test-key", new DateTime(42), HttpMethod.GET);
@@ -75,12 +79,7 @@ public class S3HelperTest {
     public void getObjectMetadata() {
         // Mock S3 client.
         ObjectMetadata objectMetadata = new ObjectMetadata();
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
         when(mockS3Client.getObjectMetadata("test-bucket", "test-key")).thenReturn(objectMetadata);
-
-        // Set up S3 Helper.
-        S3Helper s3Helper = new S3Helper();
-        s3Helper.setS3Client(mockS3Client);
 
         // Execute and validate.
         ObjectMetadata retval = s3Helper.getObjectMetadata("test-bucket", "test-key");
@@ -94,8 +93,8 @@ public class S3HelperTest {
         String content = "this is the answer in bytes";
 
         S3Object spyS3Object = spyS3ObjectForRead(content);
-        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, spyS3Object);
-        byte[] retValBytes = testS3Helper.readS3FileAsBytes(bucket, key);
+        when(mockS3Client.getObject(bucket, key)).thenReturn(spyS3Object);
+        byte[] retValBytes = s3Helper.readS3FileAsBytes(bucket, key);
         assertEquals(new String(retValBytes, Charsets.UTF_8), content);
 
         verify(spyS3Object, atLeastOnce()).close();
@@ -108,8 +107,8 @@ public class S3HelperTest {
         String content = "this is the answer";
 
         S3Object spyS3Object = spyS3ObjectForRead(content);
-        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, spyS3Object);
-        String retVal = testS3Helper.readS3FileAsString(bucket, key);
+        when(mockS3Client.getObject(bucket, key)).thenReturn(spyS3Object);
+        String retVal = s3Helper.readS3FileAsString(bucket, key);
         assertEquals(retVal, content);
 
         verify(spyS3Object, atLeastOnce()).close();
@@ -122,8 +121,8 @@ public class S3HelperTest {
         String content = "foo\nbar\nbaz";
 
         S3Object spyS3Object = spyS3ObjectForRead(content);
-        S3Helper testS3Helper = setupMockS3ForRead(bucket, key, spyS3Object);
-        List<String> lineList = testS3Helper.readS3FileAsLines(bucket, key);
+        when(mockS3Client.getObject(bucket, key)).thenReturn(spyS3Object);
+        List<String> lineList = s3Helper.readS3FileAsLines(bucket, key);
         assertEquals(lineList.size(), 3);
         assertEquals(lineList.get(0), "foo");
         assertEquals(lineList.get(1), "bar");
@@ -146,43 +145,27 @@ public class S3HelperTest {
         return mockS3Object;
     }
 
-    private static S3Helper setupMockS3ForRead(String bucket, String key, S3Object mockS3Object) {
-        // mock S3 client
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
-        when(mockS3Client.getObject(bucket, key)).thenReturn(mockS3Object);
-
-        // set up test S3 helper
-        S3Helper testS3Helper = new S3Helper();
-        testS3Helper.setS3Client(mockS3Client);
-        return testS3Helper;
-    }
-
     @Test
     public void writeBytes() throws Exception {
-        // set up mock and test helper
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
-        S3Helper s3Helper = new S3Helper();
-        s3Helper.setS3Client(mockS3Client);
-
         // execute and validate
-        s3Helper.writeBytesToS3("write-bucket", "write-bytes-key", "test write bytes".getBytes(Charsets.UTF_8));
+        byte[] content = "test write bytes".getBytes(Charsets.UTF_8);
+        s3Helper.writeBytesToS3("write-bucket", "write-bytes-key", content);
 
         ArgumentCaptor<InputStream> streamCaptor = ArgumentCaptor.forClass(InputStream.class);
+        ArgumentCaptor<ObjectMetadata> metadataCaptor = ArgumentCaptor.forClass(ObjectMetadata.class);
         verify(mockS3Client).putObject(eq("write-bucket"), eq("write-bytes-key"), streamCaptor.capture(),
-                isNull(ObjectMetadata.class));
+                metadataCaptor.capture());
 
         InputStream writtenStream = streamCaptor.getValue();
         byte[] writtenBytes = ByteStreams.toByteArray(writtenStream);
         assertEquals(new String(writtenBytes, Charsets.UTF_8), "test write bytes");
+
+        ObjectMetadata metadata = metadataCaptor.getValue();
+        assertEquals(metadata.getContentLength(), content.length);
     }
 
     @Test
-    public void writeFile() throws Exception {
-        // set up mock and test helper
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
-        S3Helper s3Helper = new S3Helper();
-        s3Helper.setS3Client(mockS3Client);
-
+    public void writeFile() {
         // execute and validate
         File mockFile = mock(File.class);
         s3Helper.writeFileToS3("write-bucket", "write-file-key", mockFile);
@@ -190,12 +173,7 @@ public class S3HelperTest {
     }
 
     @Test
-    public void writeFileWithMetadata() throws Exception {
-        // set up mock and test helper
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
-        S3Helper s3Helper = new S3Helper();
-        s3Helper.setS3Client(mockS3Client);
-
+    public void writeFileWithMetadata() {
         ArgumentCaptor<PutObjectRequest> putObjectRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
         
         // execute and validate
@@ -215,42 +193,42 @@ public class S3HelperTest {
     
     @Test
     public void writeLines() throws Exception {
-        // set up mock and test helper
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
-        S3Helper s3Helper = new S3Helper();
-        s3Helper.setS3Client(mockS3Client);
-
         // execute and validate
         s3Helper.writeLinesToS3("test-bucket", "test-key", ImmutableList.of("foo", "bar", "baz"));
 
         ArgumentCaptor<InputStream> streamCaptor = ArgumentCaptor.forClass(InputStream.class);
+        ArgumentCaptor<ObjectMetadata> metadataCaptor = ArgumentCaptor.forClass(ObjectMetadata.class);
         verify(mockS3Client).putObject(eq("test-bucket"), eq("test-key"), streamCaptor.capture(),
-                isNull(ObjectMetadata.class));
+                metadataCaptor.capture());
+
+        String expected = "foo\nbar\nbaz";
 
         InputStream writtenStream = streamCaptor.getValue();
         byte[] writtenBytes = ByteStreams.toByteArray(writtenStream);
-        assertEquals(new String(writtenBytes, Charsets.UTF_8), "foo\nbar\nbaz");
+        assertEquals(new String(writtenBytes, Charsets.UTF_8), expected);
+
+        ObjectMetadata metadata = metadataCaptor.getValue();
+        assertEquals(metadata.getContentLength(), expected.length());
     }
     
     @Test
     public void writeBytesToS3WithMetadata() throws Exception {
-        AmazonS3Client mockS3Client = mock(AmazonS3Client.class);
-        S3Helper testS3Helper = new S3Helper();
-        testS3Helper.setS3Client(mockS3Client);
-
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
         byte[] data = "[1,2,3]".getBytes(Charsets.UTF_8);
         
-        testS3Helper.writeBytesToS3("test-bucket", "test-key", data, metadata);
+        s3Helper.writeBytesToS3("test-bucket", "test-key", data, metadata);
         
         ArgumentCaptor<InputStream> streamCaptor = ArgumentCaptor.forClass(InputStream.class);
         
-        verify(mockS3Client).putObject(eq("test-bucket"), eq("test-key"), streamCaptor.capture(), eq(metadata));
+        verify(mockS3Client).putObject(eq("test-bucket"), eq("test-key"), streamCaptor.capture(),
+                same(metadata));
         
         InputStream writtenStream = streamCaptor.getValue();
         byte[] writtenBytes = ByteStreams.toByteArray(writtenStream);
         assertEquals(new String(writtenBytes, Charsets.UTF_8), "[1,2,3]");
+
+        assertEquals(metadata.getContentLength(), data.length);
     }
     
 }
