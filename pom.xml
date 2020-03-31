@@ -146,7 +146,7 @@
         <repository>
             <id>sagebionetworks-libs-releases-local</id>
             <name>sagebionetworks-libs-releases-local</name>
-            <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
+            <url>https://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
         </repository>
     </repositories>
 
