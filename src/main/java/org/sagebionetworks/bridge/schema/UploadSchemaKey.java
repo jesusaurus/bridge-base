@@ -4,23 +4,23 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Objects;
 import org.apache.commons.lang3.StringUtils;
 
-/** This class represents an upload schema key, with a study ID, schema ID, and revision. */
+/** This class represents an upload schema key, with a app ID, schema ID, and revision. */
 @JsonDeserialize(builder = UploadSchemaKey.Builder.class)
 public final class UploadSchemaKey {
-    private final String studyId;
+    private final String appId;
     private final String schemaId;
     private final int revision;
 
     /** Private constructor. To construct, use Builder. */
-    private UploadSchemaKey(String studyId, String schemaId, int revision) {
-        this.studyId = studyId;
+    private UploadSchemaKey(String appId, String schemaId, int revision) {
+        this.appId = appId;
         this.schemaId = schemaId;
         this.revision = revision;
     }
 
-    /** ID of the study this schema lives in. */
-    public String getStudyId() {
-        return studyId;
+    /** ID of the app this schema lives in. */
+    public String getAppId() {
+        return appId;
     }
 
     /** ID of the schema. */
@@ -44,34 +44,34 @@ public final class UploadSchemaKey {
         }
         UploadSchemaKey schemaKey = (UploadSchemaKey) o;
         return Objects.equal(revision, schemaKey.revision) &&
-                Objects.equal(studyId, schemaKey.studyId) &&
+                Objects.equal(appId, schemaKey.appId) &&
                 Objects.equal(schemaId, schemaKey.schemaId);
     }
 
     /** {@inheritDoc} */
     @Override
     public int hashCode() {
-        return Objects.hashCode(studyId, schemaId, revision);
+        return Objects.hashCode(appId, schemaId, revision);
     }
 
     /**
-     * Returns the string representation of the schema, which is "[studyId]-[schemaId]-v[revision]". For example:
+     * Returns the string representation of the schema, which is "[appId]-[schemaId]-v[revision]". For example:
      * parkinson-Voice Activity-v1
      */
     @Override
     public String toString() {
-        return studyId + "-" + schemaId + "-v" + revision;
+        return appId + "-" + schemaId + "-v" + revision;
     }
 
     /** Builder for an UploadSchemaKey. */
     public static class Builder {
-        private String studyId;
+        private String appId;
         private String schemaId;
         private Integer revision;
 
-        /** @see UploadSchemaKey#getStudyId */
-        public Builder withStudyId(String studyId) {
-            this.studyId = studyId;
+        /** @see UploadSchemaKey#getAppId */
+        public Builder withAppId(String appId) {
+            this.appId = appId;
             return this;
         }
 
@@ -89,8 +89,8 @@ public final class UploadSchemaKey {
 
         /** Builds an UploadSchemaKey and validate that all fields are specified and that revision is positive. */
         public UploadSchemaKey build() {
-            if (StringUtils.isBlank(studyId)) {
-                throw new IllegalStateException("studyId must be specified");
+            if (StringUtils.isBlank(appId)) {
+                throw new IllegalStateException("appId must be specified");
             }
 
             if (StringUtils.isBlank(schemaId)) {
@@ -103,7 +103,7 @@ public final class UploadSchemaKey {
                 throw new IllegalStateException("revision must be specified and positive");
             }
 
-            return new UploadSchemaKey(studyId, schemaId, revision);
+            return new UploadSchemaKey(appId, schemaId, revision);
         }
     }
 }
