@@ -16,7 +16,7 @@ public class UploadSchemaKeyTest {
 
     @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*appId.*")
     public void nullAppId() {
-        new UploadSchemaKey.Builder().withSchemaId("test-schema").withRevision(42).build();
+        new UploadSchemaKey.Builder().withAppId(null).withSchemaId("test-schema").withRevision(42).build();
     }
 
     @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*appId.*")
@@ -70,7 +70,27 @@ public class UploadSchemaKeyTest {
     }
 
     @Test
-    public void jsonSerialize() throws Exception {
+    public void jsonSerializeWithStudyId() throws Exception {
+        // start with JSON
+        String jsonText = "{\n" +
+                "   \"studyId\":\"test-app\",\n" +
+                "   \"schemaId\":\"test-schema\",\n" +
+                "   \"revision\":42\n" +
+                "}";
+
+        // convert to POJO
+        UploadSchemaKey schemaKey = DefaultObjectMapper.INSTANCE.readValue(jsonText, UploadSchemaKey.class);
+        assertEquals(schemaKey.toString(), "test-app-test-schema-v42");
+
+        // convert back to JSON
+        JsonNode jsonNode = DefaultObjectMapper.INSTANCE.convertValue(schemaKey, JsonNode.class);
+        assertEquals(jsonNode.get("appId").textValue(), "test-app");
+        assertEquals(jsonNode.get("schemaId").textValue(), "test-schema");
+        assertEquals(jsonNode.get("revision").intValue(), 42);
+    }
+    
+    @Test
+    public void jsonSerializeWithAppId() throws Exception {
         // start with JSON
         String jsonText = "{\n" +
                 "   \"appId\":\"test-app\",\n" +

@@ -1,5 +1,6 @@
 package org.sagebionetworks.bridge.schema;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Objects;
 import org.apache.commons.lang3.StringUtils;
@@ -70,16 +71,12 @@ public final class UploadSchemaKey {
         private Integer revision;
 
         /** @see UploadSchemaKey#getAppId */
+        @JsonAlias("studyId")
         public Builder withAppId(String appId) {
             this.appId = appId;
             return this;
         }
         
-        public Builder withStudyId(String studyId) {
-            this.appId = studyId;
-            return this;
-        }
-
         /** @see UploadSchemaKey#getSchemaId */
         public Builder withSchemaId(String schemaId) {
             this.schemaId = schemaId;
