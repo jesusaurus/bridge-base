@@ -67,7 +67,7 @@ public class AesGcmEncryptor implements Encryptor {
         return cipher;
     }
 
-    private static final int KEY_BIT_SIZE = 128;
+    private static final int KEY_BIT_SIZE = 256;
     private final AesCipherService aesCipher;
     private final String key;
 }

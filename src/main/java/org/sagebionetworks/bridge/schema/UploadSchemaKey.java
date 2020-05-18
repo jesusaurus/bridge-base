@@ -22,7 +22,7 @@ public final class UploadSchemaKey {
     public String getAppId() {
         return appId;
     }
-
+    
     /** ID of the schema. */
     public String getSchemaId() {
         return schemaId;
@@ -72,6 +72,11 @@ public final class UploadSchemaKey {
         /** @see UploadSchemaKey#getAppId */
         public Builder withAppId(String appId) {
             this.appId = appId;
+            return this;
+        }
+        
+        public Builder withStudyId(String studyId) {
+            this.appId = studyId;
             return this;
         }
 
