@@ -22,11 +22,11 @@ public class UploadSchemaTest {
 
     @Test
     public void happyCase() {
-        UploadSchemaKey schemaKey = new UploadSchemaKey.Builder().withStudyId("test-study").withSchemaId("test-schema")
+        UploadSchemaKey schemaKey = new UploadSchemaKey.Builder().withAppId("test-app").withSchemaId("test-schema")
                 .withRevision(7).build();
         UploadSchema schema = new UploadSchema.Builder().withKey(schemaKey).addField("foo", "STRING")
                 .addField("bar", "INT").build();
-        assertEquals(schema.getKey().toString(), "test-study-test-schema-v7");
+        assertEquals(schema.getKey().toString(), "test-app-test-schema-v7");
 
         List<String> fieldNameList = schema.getFieldNameList();
         assertEquals(fieldNameList.size(), 2);
@@ -46,17 +46,18 @@ public class UploadSchemaTest {
 
     @Test(expectedExceptions = IllegalStateException.class)
     public void emptyFieldDefList() {
-        UploadSchemaKey schemaKey = new UploadSchemaKey.Builder().withStudyId("test-study").withSchemaId("test-schema")
+        UploadSchemaKey schemaKey = new UploadSchemaKey.Builder().withAppId("test-app").withSchemaId("test-schema")
                 .withRevision(7).build();
         new UploadSchema.Builder().withKey(schemaKey).build();
     }
 
     @Test
     public void fromDdbItem() throws Exception {
-        Item ddbItem = new Item().withString("studyId", "test-study").withString("key", "test-study:ddb-schema")
+        // In DynamoDB, appId is named "studyId" for legacy reasons.
+        Item ddbItem = new Item().withString("studyId", "test-app").withString("key", "test-app:ddb-schema")
                 .withInt("revision", 13).withString("fieldDefinitions", DUMMY_FIELD_DEF_LIST_JSON);
         UploadSchema schema = UploadSchema.fromDdbItem(ddbItem);
-        assertEquals(schema.getKey().toString(), "test-study-ddb-schema-v13");
+        assertEquals(schema.getKey().toString(), "test-app-ddb-schema-v13");
 
         List<String> fieldNameList = schema.getFieldNameList();
         assertEquals(fieldNameList.size(), 2);
@@ -71,7 +72,8 @@ public class UploadSchemaTest {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void fromDdbItemMalformedKey() throws Exception {
-        Item ddbItem = new Item().withString("studyId", "test-study").withString("key", "required colon missing")
+        // In DynamoDB, appId is named "studyId" for legacy reasons.
+        Item ddbItem = new Item().withString("studyId", "test-app").withString("key", "required colon missing")
                 .withInt("revision", 2).withString("fieldDefinitions", DUMMY_FIELD_DEF_LIST_JSON);
         UploadSchema.fromDdbItem(ddbItem);
     }
@@ -79,10 +81,11 @@ public class UploadSchemaTest {
 
     @Test
     public void fromDdbItemSchemaIdWithColon() throws Exception {
-        Item ddbItem = new Item().withString("studyId", "test-study").withString("key", "test-study:has:colons")
+        // In DynamoDB, appId is named "studyId" for legacy reasons.
+        Item ddbItem = new Item().withString("studyId", "test-app").withString("key", "test-app:has:colons")
                 .withInt("revision", 42).withString("fieldDefinitions", DUMMY_FIELD_DEF_LIST_JSON);
         UploadSchema schema = UploadSchema.fromDdbItem(ddbItem);
-        assertEquals(schema.getKey().toString(), "test-study-has:colons-v42");
+        assertEquals(schema.getKey().toString(), "test-app-has:colons-v42");
 
         // Don't bother testing the actual fields. They've already been tested in a previous test case.
     }

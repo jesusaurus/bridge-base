@@ -55,10 +55,10 @@ public class UploadSchema {
             throw new IllegalArgumentException("Malformed key " + ddbKey);
         }
 
-        String studyId = ddbKeyTokenArray[0];
+        String appId = ddbKeyTokenArray[0];
         String schemaId = ddbKeyTokenArray[1];
         int rev = ddbItem.getInt("revision");
-        UploadSchemaKey key = new UploadSchemaKey.Builder().withStudyId(studyId).withSchemaId(schemaId)
+        UploadSchemaKey key = new UploadSchemaKey.Builder().withAppId(appId).withSchemaId(schemaId)
                 .withRevision(rev).build();
         schemaBuilder.withKey(key);
 
@@ -73,7 +73,7 @@ public class UploadSchema {
         return schemaBuilder.build();
     }
 
-    /** Schema key (study, schema, revision). */
+    /** Schema key (appId, schema, revision). */
     public UploadSchemaKey getKey() {
         return key;
     }
