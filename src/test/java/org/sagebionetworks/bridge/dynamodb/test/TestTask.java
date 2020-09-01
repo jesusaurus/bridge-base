@@ -1,7 +1,6 @@
 package org.sagebionetworks.bridge.dynamodb.test;
 
 import org.sagebionetworks.bridge.dynamodb.DynamoProjection;
-import org.sagebionetworks.bridge.dynamodb.DynamoThroughput;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
@@ -12,7 +11,6 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 import com.amazonaws.services.dynamodbv2.model.ProjectionType;
 
 @DynamoDBTable(tableName = "TestTask")
-@DynamoThroughput(writeCapacity=18L, readCapacity=20L)
 public class TestTask {
 
     private String healthCode;

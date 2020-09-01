@@ -37,8 +37,6 @@ public class DynamoTableMapperTest {
         assertEquals(5, table.getAttributeDefinitions().size());
         assertEquals(2, table.getLocalSecondaryIndexes().size());
         assertEquals(1, table.getGlobalSecondaryIndexes().size());
-        assertEquals(30L, table.getProvisionedThroughput().getReadCapacityUnits().longValue());
-        assertEquals(50L, table.getProvisionedThroughput().getWriteCapacityUnits().longValue());
     }
 
     @Test
@@ -79,15 +77,11 @@ public class DynamoTableMapperTest {
         GlobalSecondaryIndexDescription index = findIndex(table.getGlobalSecondaryIndexes(), "guid-index");
         assertEquals("INCLUDE", index.getProjection().getProjectionType());
         assertEquals("guid", index.getKeySchema().get(0).getAttributeName());
-        assertEquals(Long.valueOf(18), index.getProvisionedThroughput().getWriteCapacityUnits());
-        assertEquals(Long.valueOf(20), index.getProvisionedThroughput().getReadCapacityUnits());
 
         index = findIndex(table.getGlobalSecondaryIndexes(), "healthCode-scheduledOn-index");
         assertEquals("ALL", index.getProjection().getProjectionType());
         assertEquals("healthCode", index.getKeySchema().get(0).getAttributeName());
         assertEquals("scheduledOn", index.getKeySchema().get(1).getAttributeName());
-        assertEquals(Long.valueOf(18), index.getProvisionedThroughput().getWriteCapacityUnits());
-        assertEquals(Long.valueOf(20), index.getProvisionedThroughput().getReadCapacityUnits());
     }
 
     private GlobalSecondaryIndexDescription findIndex(List<GlobalSecondaryIndexDescription> list, String name) {

@@ -14,6 +14,7 @@ import java.util.Map;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.BillingMode;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
 import com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndex;
@@ -82,9 +83,8 @@ public class DynamoUtilsTest {
         assertNotNull(attributes);
         assertEquals(5, attributes.size());
 
-        // Throughput
-        assertEquals(30L, request.getProvisionedThroughput().getReadCapacityUnits().longValue());
-        assertEquals(50L, request.getProvisionedThroughput().getWriteCapacityUnits().longValue());
+        // Billing mode
+        assertEquals(BillingMode.PAY_PER_REQUEST.toString(), request.getBillingMode());
     }
 
     @Test
@@ -172,8 +172,7 @@ public class DynamoUtilsTest {
                     new GlobalSecondaryIndexDescription()
                             .withIndexName(index.getIndexName())
                             .withKeySchema(index.getKeySchema())
-                            .withProjection(index.getProjection())
-                            .withProvisionedThroughput(index.getProvisionedThroughput()));
+                            .withProjection(index.getProjection()));
         }
 
         // local indices
