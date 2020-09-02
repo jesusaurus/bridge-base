@@ -101,7 +101,7 @@
         <dependency>
             <groupId>org.sagebionetworks</groupId>
             <artifactId>synapseJavaClient</artifactId>
-            <version>302.0</version>
+            <version>322.0</version>
         </dependency>
         <dependency>
             <groupId>redis.clients</groupId>
@@ -144,9 +144,9 @@
 
     <repositories>
         <repository>
-            <id>sagebionetworks-libs-releases-local</id>
-            <name>sagebionetworks-libs-releases-local</name>
-            <url>https://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
+            <id>sagebionetworks-releases-local</id>
+            <name>sagebionetworks-releases-local</name>
+            <url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local</url>
         </repository>
     </repositories>
 
