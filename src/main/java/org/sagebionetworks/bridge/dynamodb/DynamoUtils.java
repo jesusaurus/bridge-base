@@ -10,6 +10,7 @@ import java.util.Map;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
+import com.amazonaws.services.dynamodbv2.model.BillingMode;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
@@ -19,15 +20,11 @@ import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndex;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndexDescription;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.model.TableStatus;
 
 public class DynamoUtils {
-
-    private static final String TABLE_NAME_DELIMITER = "-";
-
     private final DynamoNamingHelper namingHelper;
     private final AmazonDynamoDB dynamoClient;
 
@@ -73,14 +70,8 @@ public class DynamoUtils {
         final CreateTableRequest request = new CreateTableRequest()
                 .withTableName(table.getTableName())
                 .withKeySchema(table.getKeySchema())
-                .withAttributeDefinitions(table.getAttributeDefinitions());
-
-        // ProvisionedThroughputDescription -> ProvisionedThroughput
-        final ProvisionedThroughput throughput = new ProvisionedThroughput(
-                table.getProvisionedThroughput().getReadCapacityUnits(),
-                table.getProvisionedThroughput().getWriteCapacityUnits()
-        );
-        request.setProvisionedThroughput(throughput);
+                .withAttributeDefinitions(table.getAttributeDefinitions())
+                .withBillingMode(BillingMode.PAY_PER_REQUEST);
 
         // GlobalSecondaryIndexDescription -> GlobalSecondaryIndex
         final List<GlobalSecondaryIndex> globalIndices = new ArrayList<>();
@@ -88,11 +79,7 @@ public class DynamoUtils {
             final GlobalSecondaryIndex globalIndex = new GlobalSecondaryIndex()
                     .withIndexName(globalIndexDesc.getIndexName())
                     .withKeySchema(globalIndexDesc.getKeySchema())
-                    .withProjection(globalIndexDesc.getProjection())
-                    .withProvisionedThroughput(new ProvisionedThroughput(
-                            globalIndexDesc.getProvisionedThroughput().getReadCapacityUnits(),
-                            globalIndexDesc.getProvisionedThroughput().getWriteCapacityUnits()
-                    ));
+                    .withProjection(globalIndexDesc.getProjection());
             globalIndices.add(globalIndex);
         }
         if (globalIndices.size() > 0) {

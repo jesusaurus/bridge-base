@@ -27,8 +27,6 @@ import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndexDescription;
 import com.amazonaws.services.dynamodbv2.model.Projection;
 import com.amazonaws.services.dynamodbv2.model.ProjectionType;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputDescription;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -100,7 +98,6 @@ public class AnnotationBasedTableCreator {
             final Map<String, AttributeDefinition> attributes = new HashMap<>();
             final List<GlobalSecondaryIndexDescription> globalIndices = new ArrayList<>();
             final List<LocalSecondaryIndexDescription> localIndices = new ArrayList<>();
-            final ProvisionedThroughput throughput = getThroughput(clazz);
             Method[] methods = clazz.getMethods();
             KeySchemaElement hashKey = null;
             for (Method method : methods) {
@@ -162,7 +159,7 @@ public class AnnotationBasedTableCreator {
                     for (String oneIndexName : indexNameSet) {
                         String rangeAttrName = findGlobalIndexRangeAttrName(clazz, oneIndexName);
                         GlobalSecondaryIndexDescription descr = createGlobalIndexDescr(
-                                oneIndexName, attrName, rangeAttrName, throughput);
+                                oneIndexName, attrName, rangeAttrName);
                         addProjectionIfAnnotated(method, oneIndexName, descr);
                         globalIndices.add(descr);
                     }
@@ -200,22 +197,10 @@ public class AnnotationBasedTableCreator {
                 .withKeySchema(keySchema)
                 .withAttributeDefinitions(attributes.values())
                 .withGlobalSecondaryIndexes(globalIndices)
-                .withLocalSecondaryIndexes(localIndices)
-                .withProvisionedThroughput(
-                    new ProvisionedThroughputDescription()
-                        .withReadCapacityUnits(throughput.getReadCapacityUnits())
-                        .withWriteCapacityUnits(throughput.getWriteCapacityUnits()));
+                .withLocalSecondaryIndexes(localIndices);
             tables.put(tableName, table);
         }
         return new ArrayList<>(tables.values());
-    }
-
-    private ProvisionedThroughput getThroughput(final Class<?> clazz) {
-        if (clazz.isAnnotationPresent(DynamoThroughput.class)) {
-            DynamoThroughput throughput = clazz.getAnnotation(DynamoThroughput.class);
-            return new ProvisionedThroughput(throughput.readCapacity(), throughput.writeCapacity());
-        }
-        return new ProvisionedThroughput(DEFAULT_READ_CAPACITY, DEFAULT_WRITE_CAPACITY);
     }
 
     /**
@@ -231,7 +216,7 @@ public class AnnotationBasedTableCreator {
     }
 
     private GlobalSecondaryIndexDescription createGlobalIndexDescr(String indexName, String hashAttrName,
-                    String rangeAttrName, ProvisionedThroughput throughput) {
+                    String rangeAttrName) {
         checkArgument(isNotBlank(indexName));
 
         List<KeySchemaElement> keys = Lists.newArrayList();
@@ -244,11 +229,7 @@ public class AnnotationBasedTableCreator {
         GlobalSecondaryIndexDescription globalIndex = new GlobalSecondaryIndexDescription()
             .withIndexName(indexName)
             .withKeySchema(keys)
-            .withProjection(new Projection().withProjectionType(ProjectionType.KEYS_ONLY))
-            .withProvisionedThroughput(
-                new ProvisionedThroughputDescription()
-                    .withWriteCapacityUnits(throughput.getWriteCapacityUnits())
-                    .withReadCapacityUnits(throughput.getReadCapacityUnits()));
+            .withProjection(new Projection().withProjectionType(ProjectionType.KEYS_ONLY));
         return globalIndex;
     }
 
