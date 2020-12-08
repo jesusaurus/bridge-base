@@ -21,7 +21,7 @@ public class DefaultObjectMapperTest {
     @Test
     public void silentlyIgnoresUnknownProperties() throws Exception {
         String json = "{\"name\": \"aName\", \"value\": \"aValue\", \"third\": \"unknownProperty\"}";
-        TestObject object = DefaultObjectMapper.INSTANCE.readValue(json, TestObject.class);
+        DefaultObjectMapper.INSTANCE.readValue(json, TestObject.class);
     }
     
 }

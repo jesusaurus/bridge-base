@@ -20,6 +20,8 @@ import org.springframework.core.io.support.PropertiesLoaderUtils;
 
 /**
  * Config backed by Java properties.
+ * 
+ * CHANGE: 2020-12-08 to test publication to S3 repository.
  */
 public class PropertiesConfig implements Config {
     /**
