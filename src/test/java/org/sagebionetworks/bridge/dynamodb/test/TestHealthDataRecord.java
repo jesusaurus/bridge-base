@@ -1,7 +1,5 @@
 package org.sagebionetworks.bridge.dynamodb.test;
 
-import org.sagebionetworks.bridge.dynamodb.DynamoThroughput;
-
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIndexHashKey;
@@ -13,7 +11,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 // This class is based on an older version of HealthDataRecord, but is really just a dummy table used to test
 // DynamoInitializer.
-@DynamoThroughput(writeCapacity = 50, readCapacity = 30)
 @DynamoDBTable(tableName = "TestHealthDataRecord")
 public class TestHealthDataRecord {
 
