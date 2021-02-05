@@ -203,4 +203,25 @@ public class PropertiesConfigTest {
         assertEquals(config.get("example.property"), "override.value.for.dev");
         System.clearProperty("dev.example.property");
     }
+    
+    @Test
+    public void testInterpolation() throws Exception {
+        Config config = new PropertiesConfig(TEST_CONF_FILE);
+        
+        assertEquals(config.get("example.interpolated"), "This value should be 2000");
+    }
+    
+    @Test
+    public void testNoInterpolation() throws Exception {
+        Config config = new PropertiesConfig(TEST_CONF_FILE);
+        
+        assertEquals(config.get("example.no.interpolation"), "This value should be ${no.value}");
+    }
+
+    @Test
+    public void testNestedInterpolation() throws Exception {
+        Config config = new PropertiesConfig(TEST_CONF_FILE);
+        
+        assertEquals(config.get("example.nested.interpolation"), "Testing This value should be 2000");
+    }
 }
