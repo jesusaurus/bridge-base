@@ -17,6 +17,7 @@ import com.google.common.collect.Lists;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.util.PropertyPlaceholderHelper;
 
 /**
  * Config backed by Java properties.
@@ -24,6 +25,9 @@ import org.springframework.core.io.support.PropertiesLoaderUtils;
  * CHANGE: 2020-12-08 to test publication to S3 repository.
  */
 public class PropertiesConfig implements Config {
+    
+    private static final PropertyPlaceholderHelper RESOLVER = new PropertyPlaceholderHelper("${", "}");
+    
     /**
      * Default user when user is not specified in the config.
      */
@@ -172,19 +176,21 @@ public class PropertiesConfig implements Config {
     @Override
     public String get(final String key) {
         checkNotNull(key);
-        return properties.getProperty(key);
+        
+        String value = properties.getProperty(key);
+        return (value == null ) ? value : RESOLVER.replacePlaceholders(value, properties);
     }
 
     @Override
     public int getInt(final String key) {
         checkNotNull(key);
-        return Integer.parseInt(properties.getProperty(key));
+        return Integer.parseInt(get(key));
     }
 
     @Override
     public List<String> getList(final String key) {
         checkNotNull(key);
-        final String property = properties.getProperty(key);
+        final String property = get(key);
         return Lists.newArrayList(delimiter.split(property));
     }
 
