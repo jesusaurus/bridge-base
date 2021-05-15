@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -39,6 +40,31 @@ public class S3Helper {
      */
     public final void setS3Client(AmazonS3Client s3Client) {
         this.s3Client = s3Client;
+    }
+
+    /**
+     * Copies an S3 file from the specified source to the specified destination, optionally providing the new object
+     * metadata. If the object metadata is not specified, it will be copied from the source (which is the default
+     * behvior of S3).
+     *
+     * @param sourceBucket
+     *         S3 bucket to copy from
+     * @param sourceKey
+     *         S3 key to copy from
+     * @param destinationBucket
+     *         S3 bucket to copy to
+     * @param destinationKey
+     *         S3 key to copy to
+     * @param newObjectMetadata
+     *         optional metadata for the new S3 file
+     */
+    @RetryOnFailure(attempts = 5, delay = 100, unit = TimeUnit.MILLISECONDS, types = AmazonClientException.class,
+            randomize = false)
+    public void copyS3File(String sourceBucket, String sourceKey, String destinationBucket, String destinationKey,
+            ObjectMetadata newObjectMetadata) {
+        CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, destinationBucket, destinationKey);
+        request.setNewObjectMetadata(newObjectMetadata);
+        s3Client.copyObject(request);
     }
 
     /**

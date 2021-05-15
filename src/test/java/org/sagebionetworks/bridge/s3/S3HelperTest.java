@@ -18,6 +18,7 @@ import java.util.List;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -47,6 +48,26 @@ public class S3HelperTest {
     @BeforeMethod
     public void setup() {
         MockitoAnnotations.initMocks(this);
+    }
+
+    @Test
+    public void copyS3File() {
+        // Execute.
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        s3Helper.copyS3File("source-bucket", "source-key", "destination-bucket",
+                "destination-key", metadata);
+
+        // Verify.
+        ArgumentCaptor<CopyObjectRequest> requestCaptor = ArgumentCaptor.forClass(CopyObjectRequest.class);
+        verify(mockS3Client).copyObject(requestCaptor.capture());
+
+        CopyObjectRequest request = requestCaptor.getValue();
+        assertEquals(request.getSourceBucketName(), "source-bucket");
+        assertEquals(request.getSourceKey(), "source-key");
+        assertEquals(request.getDestinationBucketName(), "destination-bucket");
+        assertEquals(request.getDestinationKey(), "destination-key");
+        assertSame(request.getNewObjectMetadata(), metadata);
     }
 
     @Test
