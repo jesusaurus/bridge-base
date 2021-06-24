@@ -23,11 +23,22 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.jcabi.aspects.RetryOnFailure;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -186,28 +197,7 @@ public class SynapseHelper {
         String synapseTableId = createdTable.getId();
 
         // create ACLs
-        // ResourceAccess is a mutable object, but the Synapse API takes them in a Set. This is a little weird.
-        // IMPORTANT: Do not modify ResourceAccess objects after adding them to the set. This will break the set.
-        Set<ResourceAccess> resourceAccessSet = new HashSet<>();
-
-        for (long adminPrincipalId : adminPrincipalIdSet) {
-            ResourceAccess adminAccess = new ResourceAccess();
-            adminAccess.setPrincipalId(adminPrincipalId);
-            adminAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
-            resourceAccessSet.add(adminAccess);
-        }
-
-        for (long readOnlyPrincipalId : readOnlyPrincipalIdSet) {
-            ResourceAccess readOnlyAccess = new ResourceAccess();
-            readOnlyAccess.setPrincipalId(readOnlyPrincipalId);
-            readOnlyAccess.setAccessType(ACCESS_TYPE_READ);
-            resourceAccessSet.add(readOnlyAccess);
-        }
-
-        AccessControlList acl = new AccessControlList();
-        acl.setId(synapseTableId);
-        acl.setResourceAccess(resourceAccessSet);
-        createAclWithRetry(acl);
+        createAclWithRetry(synapseTableId, adminPrincipalIdSet, readOnlyPrincipalIdSet);
 
         return synapseTableId;
     }
@@ -522,6 +512,50 @@ public class SynapseHelper {
     }
 
     /**
+     * <p>
+     * Convenience method for creating ACLs in Synapse. This method allows you to assign admin and read-only
+     * privileges, which is a common use case for Bridge. If you need more fine-grained control, call
+     * {@link #createAclWithRetry(AccessControlList)}.
+     * </p>
+     * <p>
+     * If the entity already has ACLs, this method overwrites those ACLs.
+     * </p>
+     */
+    public AccessControlList createAclWithRetry(String entityId, Set<Long> adminPrincipalIdSet,
+            Set<Long> readOnlyPrincipalIdSet) throws SynapseException {
+        // ResourceAccess is a mutable object, but the Synapse API takes them in a Set. This is a little weird.
+        // IMPORTANT: Do not modify ResourceAccess objects after adding them to the set. This will break the set.
+        Set<ResourceAccess> resourceAccessSet = new HashSet<>();
+
+        for (long adminPrincipalId : adminPrincipalIdSet) {
+            ResourceAccess adminAccess = new ResourceAccess();
+            adminAccess.setPrincipalId(adminPrincipalId);
+            adminAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
+            resourceAccessSet.add(adminAccess);
+        }
+
+        for (long readOnlyPrincipalId : readOnlyPrincipalIdSet) {
+            ResourceAccess readOnlyAccess = new ResourceAccess();
+            readOnlyAccess.setPrincipalId(readOnlyPrincipalId);
+            readOnlyAccess.setAccessType(ACCESS_TYPE_READ);
+            resourceAccessSet.add(readOnlyAccess);
+        }
+
+        AccessControlList acl = new AccessControlList();
+        acl.setId(entityId);
+        acl.setResourceAccess(resourceAccessSet);
+
+        AccessControlList existingAcl = getAclWithRetry(entityId);
+        if (existingAcl != null) {
+            // We need to copy over the etag or else Synapse rejects the request.
+            acl.setEtag(existingAcl.getEtag());
+            return updateAclWithRetry(acl);
+        } else {
+            return createAclWithRetry(acl);
+        }
+    }
+
+    /**
      * Creates an ACL in Synapse. This is a retry wrapper.
      *
      * @param acl
@@ -535,6 +569,74 @@ public class SynapseHelper {
     public AccessControlList createAclWithRetry(AccessControlList acl) throws SynapseException {
         rateLimiter.acquire();
         return synapseClient.createACL(acl);
+    }
+
+    /** Gets an ACL from Synapse. Returns null if it doesn't exist. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public AccessControlList getAclWithRetry(String entityId) throws SynapseException {
+        rateLimiter.acquire();
+        try {
+            return synapseClient.getACL(entityId);
+        } catch (SynapseNotFoundException ex) {
+            return null;
+        }
+    }
+
+    /** Updates an ACL in Synapse. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public AccessControlList updateAclWithRetry(AccessControlList acl) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.updateACL(acl);
+    }
+
+    /**
+     * Convenience method to add annotations to an entity. If an annotation with the same key already exists, it will
+     * be overwritten.
+     */
+    public Annotations addAnnotationsToEntity(String entityId, Map<String, AnnotationsValue> annotationMap)
+            throws SynapseException {
+        Annotations annotations = getAnnotationsWithRetry(entityId);
+        annotations.getAnnotations().putAll(annotationMap);
+        return updateAnnotationsWithRetry(entityId, annotations);
+    }
+
+    /** Get annotations for an entity. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public Annotations getAnnotationsWithRetry(String entityId) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.getAnnotationsV2(entityId);
+    }
+
+    /**
+     * <p>
+     * Update annotations on an entity. This is a retry wrapper.
+     * </p>
+     * <p>
+     * Note that annotations exist on an entity by default. There is no create annotations API. To update annotations,
+     * you need to call get annotations, then update annotations. Alternatively, call the convenience method
+     * {@link #addAnnotationsToEntity}.
+     * </p>
+     */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public Annotations updateAnnotationsWithRetry(String entityId, Annotations annotations) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.updateAnnotationsV2(entityId, annotations);
+    }
+
+    /** Looks up child by name. Returns null if the child doesn't exist. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public String lookupChildWithRetry(String parentId, String childName) throws SynapseException {
+        rateLimiter.acquire();
+        try {
+            return synapseClient.lookupChild(parentId, childName);
+        } catch (SynapseNotFoundException ex) {
+            return null;
+        }
     }
 
     /**
@@ -553,6 +655,34 @@ public class SynapseHelper {
         return synapseClient.createColumnModels(columnList);
     }
 
+    /** Create entity in Synapse. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public <T extends Entity> T createEntityWithRetry(T entity) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.createEntity(entity);
+    }
+
+    /** Get entity in Synapse. Returns null if it doesn't exist. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public <T extends Entity> T getEntityWithRetry(String entityId, Class<T> entityClass) throws SynapseException {
+        rateLimiter.acquire();
+        try {
+            return synapseClient.getEntity(entityId, entityClass);
+        } catch (SynapseNotFoundException ex) {
+            return null;
+        }
+    }
+
+    /** Update entity, which is a PUT in Synapse. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public <T extends Entity> T updateEntityWithRetry(T entity) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.putEntity(entity);
+    }
+
     /**
      * Uploads a file to Synapse as a file handle. This is a retry wrapper.
      *
@@ -566,14 +696,83 @@ public class SynapseHelper {
      */
     @RetryOnFailure(attempts = 2, delay = 1, unit = TimeUnit.SECONDS,
             types = { AmazonClientException.class, SynapseException.class }, randomize = false)
-    @SuppressWarnings("UnusedParameters")
     public FileHandle createFileHandleWithRetry(File file) throws IOException, SynapseException {
         rateLimiter.acquire();
         return synapseClient.multipartUpload(file, null, null, null);
     }
 
+    /** Creates the S3 file handle in Synapse. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public S3FileHandle createS3FileHandleWithRetry(S3FileHandle s3FileHandle) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.createExternalS3FileHandle(s3FileHandle);
+    }
+
     /**
+     * Helper method to create a folder if the folder doesn't exist. Add a retry around this method in case of race
+     * conditions between this server and another one.
+     */
+    @RetryOnFailure(attempts = 2, delay = 1, unit = TimeUnit.SECONDS, types = SynapseException.class,
+            randomize = false)
+    public String createFolderIfNotExists(String parentId, String folderName) throws SynapseException {
+        String folderId = lookupChildWithRetry(parentId, folderName);
+        if (folderId != null) {
+            // Folder already exists. We don't need to do anything.
+            return folderId;
+        } else {
+            Folder folder = new Folder();
+            folder.setName(folderName);
+            folder.setParentId(parentId);
+            folder = createEntityWithRetry(folder);
+            return folder.getId();
+        }
+    }
+
+    /** Create a project setting. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public ProjectSetting createProjectSettingWithRetry(ProjectSetting projectSetting)
+            throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.createProjectSetting(projectSetting);
+    }
+
+    /** Create a storage location in Synapse. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public <T extends StorageLocationSetting> T createStorageLocationWithRetry(T storageLocation)
+            throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.createStorageLocationSetting(storageLocation);
+    }
+
+    /**
+     * Convenience method to creates a storage location and sets it to the given entity as the only storage location.
+     * Storage locations can be applied to projects or folders.
+     */
+    public <T extends StorageLocationSetting> T createStorageLocationForEntity(String entityId, T storageLocation)
+            throws SynapseException {
+        // Create storage location.
+        storageLocation = createStorageLocationWithRetry(storageLocation);
+
+        // Add storage location to entity.
+        UploadDestinationListSetting uploadDestination = new UploadDestinationListSetting();
+        uploadDestination.setLocations(ImmutableList.of(storageLocation.getStorageLocationId()));
+        uploadDestination.setProjectId(entityId);
+        uploadDestination.setSettingsType(ProjectSettingsType.upload);
+        createProjectSettingWithRetry(uploadDestination);
+
+        return storageLocation;
+    }
+
+    /**
+     * <p>
      * Create table in Synapse. This is a retry wrapper.
+     * </p>
+     * <p>
+     * This is deprecated in favor of {@link #createEntityWithRetry}.
+     * </p>
      *
      * @param table
      *         table to create
@@ -581,6 +780,7 @@ public class SynapseHelper {
      * @throws SynapseException
      *         if the Synapse call fails
      */
+    @Deprecated
     @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
             randomize = false)
     public TableEntity createTableWithRetry(TableEntity table) throws SynapseException {
@@ -613,6 +813,7 @@ public class SynapseHelper {
      * @throws SynapseException
      *         if the Synapse call fails
      */
+    @Deprecated
     @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
             randomize = false)
     public TableEntity getTableWithRetry(String tableId) throws SynapseException {
@@ -709,5 +910,13 @@ public class SynapseHelper {
             // catch this and return null so we don't retry on "not ready"
             return null;
         }
+    }
+
+    /** Creates a Synapse team. This is a retry wrapper. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public Team createTeamWithRetry(Team team) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.createTeam(team);
     }
 }
