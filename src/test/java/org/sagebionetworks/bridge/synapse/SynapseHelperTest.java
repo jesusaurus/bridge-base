@@ -15,6 +15,7 @@ import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +36,14 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -55,6 +61,8 @@ import org.sagebionetworks.bridge.exceptions.BridgeSynapseNonRetryableException;
 @SuppressWarnings("unchecked")
 public class SynapseHelperTest {
     private static final String ENTITY_NAME_CHILD = "Child Name";
+    private static final String ETAG = "dummy etag";
+    private static final long STORAGE_LOCATION_ID = 1234L;
     private static final String SYNAPSE_CHILD_ID = "synChild";
     private static final String SYNAPSE_ENTITY_ID = "synEntity";
     private static final String SYNAPSE_PARENT_ID = "synParent";
@@ -252,8 +260,10 @@ public class SynapseHelperTest {
     // Most of these are retry wrappers, but we should test them anyway for branch coverage.
 
     @Test
-    public void createAclWithAdminAndReadOnly() throws Exception {
+    public void createAclWithAdminAndReadOnly_NewAcl() throws Exception {
         // Mock Synapse Client.
+        when(mockSynapseClient.getACL(any())).thenThrow(SynapseNotFoundException.class);
+
         AccessControlList createdAcl = new AccessControlList();
         when(mockSynapseClient.createACL(any())).thenReturn(createdAcl);
 
@@ -278,6 +288,29 @@ public class SynapseHelperTest {
     }
 
     @Test
+    public void createAclWithAdminAndReadOnly_ExistingAcl() throws Exception {
+        // Mock Synapse Client.
+        AccessControlList existingAcl = new AccessControlList();
+        existingAcl.setEtag(ETAG);
+        when(mockSynapseClient.getACL(any())).thenReturn(existingAcl);
+
+        AccessControlList updatedAcl = new AccessControlList();
+        when(mockSynapseClient.updateACL(any())).thenReturn(updatedAcl);
+
+        // Execute and validate.
+        AccessControlList retVal = synapseHelper.createAclWithRetry(SYNAPSE_ENTITY_ID, ImmutableSet.of(1111L, 2222L),
+                ImmutableSet.of(3333L, 4444L));
+        assertSame(retVal, updatedAcl);
+
+        // We verify the ACL entries in the previous test. For this one, just verify the etag.
+        ArgumentCaptor<AccessControlList> aclToUpdateCaptor = ArgumentCaptor.forClass(AccessControlList.class);
+        verify(mockSynapseClient).updateACL(aclToUpdateCaptor.capture());
+
+        AccessControlList aclTUpdate = aclToUpdateCaptor.getValue();
+        assertEquals(aclTUpdate.getEtag(), ETAG);
+    }
+
+    @Test
     public void createAcl() throws Exception {
         // mock Synapse Client - Unclear whether Synapse client just passes back the input ACL or if it creates a new
         // one. Regardless, don't depend on this implementation. Just return a separate one for tests.
@@ -288,6 +321,102 @@ public class SynapseHelperTest {
         // execute and validate
         AccessControlList retVal = synapseHelper.createAclWithRetry(inputAcl);
         assertSame(retVal, outputAcl);
+    }
+
+    @Test
+    public void getAcl() throws Exception {
+        // Mock Synapse Client.
+        AccessControlList acl = new AccessControlList();
+        when(mockSynapseClient.getACL(SYNAPSE_ENTITY_ID)).thenReturn(acl);
+
+        // Execute and validate.
+        AccessControlList retVal = synapseHelper.getAclWithRetry(SYNAPSE_ENTITY_ID);
+        assertSame(retVal, acl);
+    }
+
+    @Test
+    public void getAcl_NotFound() throws Exception {
+        // Mock Synapse Client.
+        when(mockSynapseClient.getACL(SYNAPSE_ENTITY_ID)).thenThrow(SynapseNotFoundException.class);
+
+        // Execute and validate.
+        AccessControlList retVal = synapseHelper.getAclWithRetry(SYNAPSE_ENTITY_ID);
+        assertNull(retVal);
+    }
+
+    @Test
+    public void updateAcl() throws Exception {
+        // mock Synapse Client - Unclear whether Synapse client just passes back the input ACL or if it creates a new
+        // one. Regardless, don't depend on this implementation. Just return a separate one for tests.
+        AccessControlList inputAcl = new AccessControlList();
+        AccessControlList outputAcl = new AccessControlList();
+        when(mockSynapseClient.updateACL(inputAcl)).thenReturn(outputAcl);
+
+        // execute and validate
+        AccessControlList retVal = synapseHelper.updateAclWithRetry(inputAcl);
+        assertSame(retVal, outputAcl);
+    }
+
+    @Test
+    public void addAnnotationsToEntity() throws Exception {
+        // Create test Annotation maps.
+        AnnotationsValue existingValue = makeAnnotationsValue("existing value");
+        AnnotationsValue oldOverwriteValue = makeAnnotationsValue("old overwrite value");
+        AnnotationsValue newOverwriteValue = makeAnnotationsValue("new overwrite value");
+        AnnotationsValue addedValue = makeAnnotationsValue("added value");
+
+        Map<String, AnnotationsValue> existingAnnotationMap = new HashMap<>();
+        existingAnnotationMap.put("existing", existingValue);
+        existingAnnotationMap.put("overwrite", oldOverwriteValue);
+
+        Annotations existingAnnotations = new Annotations();
+        existingAnnotations.setEtag(ETAG);
+        existingAnnotations.setId(SYNAPSE_ENTITY_ID);
+        existingAnnotations.setAnnotations(existingAnnotationMap);
+
+        Map<String, AnnotationsValue> addedAnnotationMap = new HashMap<>();
+        addedAnnotationMap.put("overwrite", newOverwriteValue);
+        addedAnnotationMap.put("added", addedValue);
+
+        // Mock Synapse Client.
+        when(mockSynapseClient.getAnnotationsV2(SYNAPSE_ENTITY_ID)).thenReturn(existingAnnotations);
+
+        Annotations updatedAnnotations = new Annotations();
+        when(mockSynapseClient.updateAnnotationsV2(any(), any())).thenReturn(updatedAnnotations);
+
+        // Execute and validate.
+        Annotations retVal = synapseHelper.addAnnotationsToEntity(SYNAPSE_ENTITY_ID, addedAnnotationMap);
+        assertSame(retVal, updatedAnnotations);
+
+        ArgumentCaptor<Annotations> annotationsToUpdateCaptor = ArgumentCaptor.forClass(Annotations.class);
+        verify(mockSynapseClient).updateAnnotationsV2(eq(SYNAPSE_ENTITY_ID), annotationsToUpdateCaptor.capture());
+        Annotations annotationsToUpdate = annotationsToUpdateCaptor.getValue();
+        assertEquals(annotationsToUpdate.getEtag(), ETAG);
+        assertEquals(annotationsToUpdate.getId(), SYNAPSE_ENTITY_ID);
+
+        Map<String, AnnotationsValue> annotationsToUpdateMap = annotationsToUpdate.getAnnotations();
+        assertEquals(annotationsToUpdateMap.size(), 3);
+        assertEquals(annotationsToUpdateMap.get("existing"), existingValue);
+        assertEquals(annotationsToUpdateMap.get("overwrite"), newOverwriteValue);
+        assertEquals(annotationsToUpdateMap.get("added"), addedValue);
+    }
+
+    private static AnnotationsValue makeAnnotationsValue(String value) {
+        AnnotationsValue annotationsValue = new AnnotationsValue();
+        annotationsValue.setType(AnnotationsValueType.STRING);
+        annotationsValue.setValue(ImmutableList.of(value));
+        return annotationsValue;
+    }
+
+    @Test
+    public void getAnnotations() throws Exception {
+        // Mock Synapse Client.
+        Annotations annotations = new Annotations();
+        when(mockSynapseClient.getAnnotationsV2(SYNAPSE_ENTITY_ID)).thenReturn(annotations);
+
+        // Execute and validate.
+        Annotations retVal = synapseHelper.getAnnotationsWithRetry(SYNAPSE_ENTITY_ID);
+        assertSame(retVal, annotations);
     }
 
     @Test
@@ -351,6 +480,40 @@ public class SynapseHelperTest {
     }
 
     @Test
+    public void getEntity() throws Exception {
+        // Mock Synapse Client.
+        TableEntity outputTable = new TableEntity();
+        when(mockSynapseClient.getEntity(SYNAPSE_ENTITY_ID, TableEntity.class)).thenReturn(outputTable);
+
+        // Execute and validate.
+        TableEntity retVal = synapseHelper.getEntityWithRetry(SYNAPSE_ENTITY_ID, TableEntity.class);
+        assertSame(retVal, outputTable);
+    }
+
+    @Test
+    public void getEntity_NotFound() throws Exception {
+        // Mock Synapse Client.
+        when(mockSynapseClient.getEntity(SYNAPSE_ENTITY_ID, TableEntity.class))
+                .thenThrow(SynapseNotFoundException.class);
+
+        // Execute and validate.
+        TableEntity retVal = synapseHelper.getEntityWithRetry(SYNAPSE_ENTITY_ID, TableEntity.class);
+        assertNull(retVal);
+    }
+
+    @Test
+    public void updateEntity() throws Exception {
+        // mock Synapse Client - Similarly, return a new output table
+        TableEntity inputTable = new TableEntity();
+        TableEntity outputTable = new TableEntity();
+        when(mockSynapseClient.putEntity(inputTable)).thenReturn(outputTable);
+
+        // execute and validate
+        TableEntity retVal = synapseHelper.updateEntityWithRetry(inputTable);
+        assertSame(retVal, outputTable);
+    }
+
+    @Test
     public void createFileHandle() throws Exception {
         // mock Synapse Client
         File mockFile = mock(File.class);
@@ -409,6 +572,20 @@ public class SynapseHelperTest {
     }
 
     @Test
+    public void createProjectSetting() throws Exception {
+        // Mock Synapse Client.
+        UploadDestinationListSetting createdProjectSetting = new UploadDestinationListSetting();
+        when(mockSynapseClient.createProjectSetting(any())).thenReturn(createdProjectSetting);
+
+        // Execute and validate.
+        UploadDestinationListSetting projectSettingToCreate = new UploadDestinationListSetting();
+        ProjectSetting retVal = synapseHelper.createProjectSettingWithRetry(projectSettingToCreate);
+        assertSame(retVal, createdProjectSetting);
+
+        verify(mockSynapseClient).createProjectSetting(same(projectSettingToCreate));
+    }
+
+    @Test
     public void createStorageLocation() throws Exception {
         // Mock Synapse Client.
         ExternalS3StorageLocationSetting createdStorageLocation = new ExternalS3StorageLocationSetting();
@@ -421,6 +598,30 @@ public class SynapseHelperTest {
         assertSame(retVal, createdStorageLocation);
 
         verify(mockSynapseClient).createStorageLocationSetting(same(storageLocationToCreate));
+    }
+
+    @Test
+    public void createStorageLocationForEntity() throws Exception {
+        // Mock Synapse Client.
+        ExternalS3StorageLocationSetting createdStorageLocation = new ExternalS3StorageLocationSetting();
+        createdStorageLocation.setStorageLocationId(STORAGE_LOCATION_ID);
+        when(mockSynapseClient.createStorageLocationSetting(any())).thenReturn(createdStorageLocation);
+
+        // Execute and validate.
+        ExternalS3StorageLocationSetting storageLocationToCreate = new ExternalS3StorageLocationSetting();
+        ExternalS3StorageLocationSetting retVal = synapseHelper.createStorageLocationForEntity(SYNAPSE_ENTITY_ID,
+                storageLocationToCreate);
+        assertSame(retVal, createdStorageLocation);
+
+        verify(mockSynapseClient).createStorageLocationSetting(same(storageLocationToCreate));
+
+        ArgumentCaptor<ProjectSetting> projectSettingToCreateCaptor = ArgumentCaptor.forClass(ProjectSetting.class);
+        verify(mockSynapseClient).createProjectSetting(projectSettingToCreateCaptor.capture());
+        UploadDestinationListSetting projectSettingToCreate = (UploadDestinationListSetting)
+                projectSettingToCreateCaptor.getValue();
+        assertEquals(projectSettingToCreate.getLocations(), ImmutableList.of(STORAGE_LOCATION_ID));
+        assertEquals(projectSettingToCreate.getProjectId(), SYNAPSE_ENTITY_ID);
+        assertEquals(projectSettingToCreate.getSettingsType(), ProjectSettingsType.upload);
     }
 
     @Test
