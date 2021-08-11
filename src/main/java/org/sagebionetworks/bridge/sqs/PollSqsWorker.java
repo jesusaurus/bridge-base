@@ -1,5 +1,7 @@
 package org.sagebionetworks.bridge.sqs;
 
+import java.util.concurrent.ExecutorService;
+
 import com.amazonaws.services.sqs.model.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +14,7 @@ public class PollSqsWorker implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(PollSqsWorker.class);
 
     private PollSqsCallback callback;
+    private ExecutorService executorService;
     private String queueUrl;
     private int sleepTimeMillis;
     private SqsHelper sqsHelper;
@@ -19,6 +22,19 @@ public class PollSqsWorker implements Runnable {
     /** Callback to call when the poll worker recieves a message. */
     public final void setCallback(PollSqsCallback callback) {
         this.callback = callback;
+    }
+
+    /**
+     * <p>
+     * If provided, the PollSqsWorker will use this ExecutorService to schedule tasks. This is generally used to
+     * execute worker tasks in a thread pool.
+     * </p>
+     * <p>
+     * If not provided, the PollSqsWorker will run worker tasks in single-threaded mode.
+     * </p>
+     */
+    public void setExecutorService(ExecutorService executorService) {
+        this.executorService = executorService;
     }
 
     /** Queue URL to poll. */
@@ -60,22 +76,41 @@ public class PollSqsWorker implements Runnable {
                     continue;
                 }
 
-                try {
-                    callback.callback(sqsMessage.getBody());
-                } catch (PollSqsWorkerBadRequestException ex) {
-                    // This is a bad request. It should not be retried. Log a warning and suppress.
-                    LOG.warn("PollSqsWorker bad request: " + ex.getMessage(), ex);
+                if (executorService != null) {
+                    // Execute callback in a separate thread.
+                    executorService.execute(() -> {
+                        try {
+                            executeCallbackForMessage(sqsMessage);
+                        } catch (Exception ex) {
+                            LOG.error("PollSqsWorker exception in worker thread: " + ex.getMessage(), ex);
+                        } catch (Error err) {
+                            LOG.error("PollSqsWorker critical error in worker thread: " + err.getMessage(), err);
+                        }
+                    });
+                } else {
+                    // Execute callback in the same thread.
+                    executeCallbackForMessage(sqsMessage);
                 }
-
-                // If the callback doesn't throw, this means it's successfully processed the message, and we should
-                // delete it from SQS to prevent re-processing the message.
-                sqsHelper.deleteMessage(queueUrl, sqsMessage.getReceiptHandle());
             } catch (Exception ex) {
                 LOG.error("PollSqsWorker exception: " + ex.getMessage(), ex);
             } catch (Error err) {
                 LOG.error("PollSqsWorker critical error: " + err.getMessage(), err);
             }
         }
+    }
+
+    // Helper method that handles calling the callback and deleting the message from the queue on success.
+    private void executeCallbackForMessage(Message sqsMessage) throws Exception {
+        try {
+            callback.callback(sqsMessage.getBody());
+        } catch (PollSqsWorkerBadRequestException ex) {
+            // This is a bad request. It should not be retried. Log a warning and suppress.
+            LOG.warn("PollSqsWorker bad request: " + ex.getMessage(), ex);
+        }
+
+        // If the callback doesn't throw, this means it's successfully processed the message, and we should
+        // delete it from SQS to prevent re-processing the message.
+        sqsHelper.deleteMessage(queueUrl, sqsMessage.getReceiptHandle());
     }
 
     // This is called by PollSqsWorker for every loop iteration to determine if worker should keep running. This
