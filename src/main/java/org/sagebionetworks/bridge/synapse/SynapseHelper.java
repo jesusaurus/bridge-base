@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -727,6 +729,17 @@ public class SynapseHelper {
             folder = createEntityWithRetry(folder);
             return folder.getId();
         }
+    }
+
+    /**
+     * Gets the Synapse stack status and returns true if Synapse is up and in read/write state. Also includes retries.
+     */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public boolean isSynapseWritable() throws SynapseException {
+        rateLimiter.acquire();
+        StackStatus status = synapseClient.getCurrentStackStatus();
+        return status.getStatus() == StatusEnum.READ_WRITE;
     }
 
     /** Create a project setting. This is a retry wrapper. */

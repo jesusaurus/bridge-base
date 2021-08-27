@@ -37,7 +37,6 @@ public final class BcCmsEncryptor implements CmsEncryptor {
 
     public BcCmsEncryptor(X509Certificate cert, PrivateKey privateKey) throws CertificateEncodingException {
         checkNotNull(cert);
-        checkNotNull(privateKey);
         Security.addProvider(new BouncyCastleProvider());
         generator = new CMSEnvelopedDataGenerator();
         RecipientInfoGenerator recipientInfoGenerator =
@@ -60,6 +59,10 @@ public final class BcCmsEncryptor implements CmsEncryptor {
 
     @Override
     public byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException {
+        if (privateKey == null) {
+            throw new UnsupportedOperationException("Encryptor cannot decrypt without private key");
+        }
+
         checkNotNull(bytes);
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
                 InputStream decryptedInputStream = decrypt(byteArrayInputStream)) {
@@ -70,6 +73,10 @@ public final class BcCmsEncryptor implements CmsEncryptor {
     /** {@inheritDoc} */
     @Override
     public InputStream decrypt(InputStream encryptedStream) throws CertificateEncodingException, CMSException, IOException {
+        if (privateKey == null) {
+            throw new UnsupportedOperationException("Encryptor cannot decrypt without private key");
+        }
+
         CMSEnvelopedDataParser envelopedData = new CMSEnvelopedDataParser(encryptedStream);
         X509CertificateHolder certHolder = new X509CertificateHolder(cert.getEncoded());
         RecipientId recipientId = new KeyTransRecipientId(certHolder.getIssuer(), certHolder.getSerialNumber());

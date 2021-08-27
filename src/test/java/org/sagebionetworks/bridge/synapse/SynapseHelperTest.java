@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -569,6 +571,28 @@ public class SynapseHelperTest {
         Folder createdFolder = createdFolderCaptor.getValue();
         assertEquals(createdFolder.getParentId(), SYNAPSE_PARENT_ID);
         assertEquals(createdFolder.getName(), ENTITY_NAME_CHILD);
+    }
+
+    @DataProvider(name = "isSynapseWritableProvider")
+    public Object[][] isSynapseWritableProvider() {
+        // { status, expected }
+        return new Object[][] {
+                { StatusEnum.READ_WRITE, true },
+                { StatusEnum.READ_ONLY, false },
+                { StatusEnum.DOWN, false },
+        };
+    }
+
+    @Test(dataProvider = "isSynapseWritableProvider")
+    public void isSynapseWritable(StatusEnum status, boolean expected) throws Exception {
+        // Mock synapse client.
+        StackStatus stackStatus = new StackStatus();
+        stackStatus.setStatus(status);
+        when(mockSynapseClient.getCurrentStackStatus()).thenReturn(stackStatus);
+
+        // Execute and validate.
+        boolean retVal = synapseHelper.isSynapseWritable();
+        assertEquals(retVal, expected);
     }
 
     @Test
