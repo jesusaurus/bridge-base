@@ -13,6 +13,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.io.File;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ import org.mockito.Spy;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -58,6 +60,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import org.sagebionetworks.bridge.exceptions.BridgeSynapseException;
 import org.sagebionetworks.bridge.exceptions.BridgeSynapseNonRetryableException;
 
 @SuppressWarnings("unchecked")
@@ -593,6 +596,23 @@ public class SynapseHelperTest {
         // Execute and validate.
         boolean retVal = synapseHelper.isSynapseWritable();
         assertEquals(retVal, expected);
+
+        try {
+            synapseHelper.checkSynapseWritableOrThrow();
+            if (!expected) {
+                fail("expected exception");
+            }
+        } catch (BridgeSynapseException ex) {
+            if (expected) {
+                fail("should not have thrown");
+            }
+        }
+    }
+
+    @Test(expectedExceptions = BridgeSynapseException.class)
+    public void checkSynapseWritableOrThrow_ThrowsOnSynapseCall() throws Exception {
+        when(mockSynapseClient.getCurrentStackStatus()).thenThrow(UnknownSynapseServerException.class);
+        synapseHelper.checkSynapseWritableOrThrow();
     }
 
     @Test

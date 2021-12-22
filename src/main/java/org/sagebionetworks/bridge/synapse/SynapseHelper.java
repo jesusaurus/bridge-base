@@ -41,10 +41,12 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -703,6 +705,57 @@ public class SynapseHelper {
         return synapseClient.multipartUpload(file, null, null, null);
     }
 
+    /**
+     * Append rows to a table. This handles polling Synapse in a loop and error handling. Note that this method already
+     * exists in SynapseClient.java, but we don't use it because we need to handle our own rate limiting.
+     */
+    public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet, String tableId) throws BridgeSynapseException,
+            SynapseException {
+        String jobId = appendRowsToTableStart(rowSet, tableId);
+        RowReferenceSet rowReferenceSet;
+        for (int loops = 0; loops < asyncTimeoutLoops; loops++) {
+            if (asyncIntervalMillis > 0) {
+                try {
+                    Thread.sleep(asyncIntervalMillis);
+                } catch (InterruptedException ex) {
+                    // noop
+                }
+            }
+
+            // Poll.
+            rowReferenceSet = appendRowsToTableGet(jobId, tableId);
+            if (rowReferenceSet != null) {
+                return rowReferenceSet;
+            }
+
+            // Result not ready. Loop around again.
+        }
+
+        // If we make it this far, this means we timed out.
+        throw new BridgeSynapseException("Timed out appending rows to table " + tableId);
+    }
+
+    /** Starts async job to append rows to a table. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public String appendRowsToTableStart(AppendableRowSet rowSet, String tableId) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.appendRowSetToTableStart(rowSet, tableId);
+    }
+
+    /** Polls the result of an async job to append rows to a table. Returns null if the result is not ready. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public RowReferenceSet appendRowsToTableGet(String jobId, String tableId) throws SynapseException {
+        try {
+            rateLimiter.acquire();
+            return synapseClient.appendRowSetToTableGet(jobId, tableId);
+        } catch (SynapseResultNotReadyException ex) {
+            // catch this and return null so we don't retry on "not ready"
+            return null;
+        }
+    }
+
     /** Creates the S3 file handle in Synapse. This is a retry wrapper. */
     @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
             randomize = false)
@@ -728,6 +781,19 @@ public class SynapseHelper {
             folder.setParentId(parentId);
             folder = createEntityWithRetry(folder);
             return folder.getId();
+        }
+    }
+
+    /** Checks if Synapse is writable and throws if it isn't. */
+    public void checkSynapseWritableOrThrow() throws BridgeSynapseException {
+        boolean isSynapseWritable;
+        try {
+            isSynapseWritable = isSynapseWritable();
+        } catch (SynapseException ex) {
+            throw new BridgeSynapseException("Error calling Synapse: " + ex.getMessage(), ex);
+        }
+        if (!isSynapseWritable) {
+            throw new BridgeSynapseException("Synapse not in writable state");
         }
     }
 
