@@ -5,7 +5,7 @@
 
     <groupId>org.sagebionetworks</groupId>
     <artifactId>bridge-base</artifactId>
-    <version>2.7.31</version>
+    <version>2.7.32</version>
 
     <properties>
         <aws.version>1.11.851</aws.version>
@@ -101,7 +101,7 @@
         <dependency>
             <groupId>org.sagebionetworks</groupId>
             <artifactId>synapseJavaClient</artifactId>
-            <version>336.0</version>
+            <version>386.0</version>
         </dependency>
         <dependency>
             <groupId>redis.clients</groupId>
