@@ -62,6 +62,7 @@ public class AesGcmEncryptor implements Encryptor {
         Security.addProvider(new BouncyCastleProvider());
         AesCipherService cipher = new AesCipherService();
         cipher.setKeySize(KEY_BIT_SIZE);
+        cipher.setStreamingMode(OperationMode.GCM);
         cipher.setMode(OperationMode.GCM);
         cipher.setPaddingScheme(PaddingScheme.NONE);
         return cipher;

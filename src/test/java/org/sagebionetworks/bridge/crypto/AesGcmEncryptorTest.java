@@ -3,12 +3,14 @@ package org.sagebionetworks.bridge.crypto;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
+import java.security.NoSuchAlgorithmException;
+
 import org.testng.annotations.Test;
 
 public class AesGcmEncryptorTest {
 
     @Test
-    public void test() {
+    public void test() throws NoSuchAlgorithmException {
         AesGcmEncryptor encryptor = new AesGcmEncryptor("XJHe3omwqIHDQ+Dr2EFnEoX+TlDuAZLrgOeE0TCPyq0=");
         assertEquals("a", encryptor.decrypt(encryptor.encrypt("a")));
         assertEquals("Encrypt me", encryptor.decrypt(encryptor.encrypt("Encrypt me")));
