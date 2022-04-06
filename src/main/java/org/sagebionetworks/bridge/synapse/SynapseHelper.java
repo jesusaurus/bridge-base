@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -997,5 +998,25 @@ public class SynapseHelper {
     public Team createTeamWithRetry(Team team) throws SynapseException {
         rateLimiter.acquire();
         return synapseClient.createTeam(team);
+    }
+
+    /**
+     * Invites a Synapse user to a Synapse team, optionally making them manager of the team. This is a retry wrapper.
+     */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public void inviteToTeam(long teamId, long principalId, boolean isManager) throws SynapseException {
+        // Synapse Java Client takes in strings, even though these are logically longs (and they are longs in Bridge
+        // code). Convert these to strings.
+        String teamIdStr = String.valueOf(teamId);
+        String principalIdStr = String.valueOf(principalId);
+
+        MembershipInvitation membershipInvitation = new MembershipInvitation();
+        membershipInvitation.setTeamId(teamIdStr);
+        membershipInvitation.setInviteeId(principalIdStr);
+        synapseClient.createMembershipInvitation(membershipInvitation, null, null);
+        if (isManager) {
+            synapseClient.setTeamMemberPermissions(teamIdStr, principalIdStr, true);
+        }
     }
 }

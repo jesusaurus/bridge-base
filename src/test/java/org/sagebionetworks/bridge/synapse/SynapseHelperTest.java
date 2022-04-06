@@ -1,7 +1,9 @@
 package org.sagebionetworks.bridge.synapse;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -35,6 +37,7 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -71,6 +74,8 @@ public class SynapseHelperTest {
     private static final String SYNAPSE_CHILD_ID = "synChild";
     private static final String SYNAPSE_ENTITY_ID = "synEntity";
     private static final String SYNAPSE_PARENT_ID = "synParent";
+    private static final long SYNAPSE_USER_ID = 2222L;
+    private static final long TEAM_ID = 3333L;
 
     @Mock
     private SynapseClient mockSynapseClient;
@@ -781,5 +786,42 @@ public class SynapseHelperTest {
         Team retVal = synapseHelper.createTeamWithRetry(teamToCreate);
         assertSame(retVal, createdTeam);
         verify(mockSynapseClient).createTeam(same(teamToCreate));
+    }
+
+    @Test
+    public void inviteToTeam_IsManagerFalse() throws Exception {
+        // Execute.
+        synapseHelper.inviteToTeam(TEAM_ID, SYNAPSE_USER_ID, false);
+
+        // Verify calls to Synapse.
+        ArgumentCaptor<MembershipInvitation> membershipInvitationCaptor = ArgumentCaptor.forClass(
+                MembershipInvitation.class);
+        verify(mockSynapseClient).createMembershipInvitation(membershipInvitationCaptor.capture(),
+                isNull(String.class), isNull(String.class));
+
+        MembershipInvitation membershipInvitation = membershipInvitationCaptor.getValue();
+        assertEquals(membershipInvitation.getTeamId(), String.valueOf(TEAM_ID));
+        assertEquals(membershipInvitation.getInviteeId(), String.valueOf(SYNAPSE_USER_ID));
+
+        verify(mockSynapseClient, never()).setTeamMemberPermissions(any(), any(), anyBoolean());
+    }
+
+    @Test
+    public void inviteToTeam_IsManagerTrue() throws Exception {
+        // Execute.
+        synapseHelper.inviteToTeam(TEAM_ID, SYNAPSE_USER_ID, true);
+
+        // Verify calls to Synapse.
+        ArgumentCaptor<MembershipInvitation> membershipInvitationCaptor = ArgumentCaptor.forClass(
+                MembershipInvitation.class);
+        verify(mockSynapseClient).createMembershipInvitation(membershipInvitationCaptor.capture(),
+                isNull(String.class), isNull(String.class));
+
+        MembershipInvitation membershipInvitation = membershipInvitationCaptor.getValue();
+        assertEquals(membershipInvitation.getTeamId(), String.valueOf(TEAM_ID));
+        assertEquals(membershipInvitation.getInviteeId(), String.valueOf(SYNAPSE_USER_ID));
+
+        verify(mockSynapseClient).setTeamMemberPermissions(String.valueOf(TEAM_ID), String.valueOf(SYNAPSE_USER_ID),
+                true);
     }
 }
