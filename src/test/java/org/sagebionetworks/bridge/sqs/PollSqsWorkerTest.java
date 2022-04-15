@@ -25,9 +25,11 @@ import org.testng.annotations.Test;
 public class PollSqsWorkerTest {
     private static final String SQS_MESSAGE_BAD_REQUEST = "bad-request-message";
     private static final String SQS_MESSAGE_ERROR = "error-message";
+    private static final String SQS_MESSAGE_RETRYABLE_ERROR = "retryable-error-message";
     private static final String SQS_MESSAGE_SUCCESS = "success-message";
     private static final String SQS_RECEIPT_BAD_REQUEST = "bad-request-receipt-handle";
     private static final String SQS_RECEIPT_ERROR = "error-receipt-handle";
+    private static final String SQS_RECEIPT_RETRYABLE_ERROR = "retryable-error-receipt-handle";
     private static final String SQS_RECEIPT_SUCCESS = "success-receipt-handle";
     private static final String SQS_QUEUE_URL = "dummy-queue-url";
 
@@ -54,42 +56,53 @@ public class PollSqsWorkerTest {
         // 2. exception
         // 3. success
         // 4. bad request
+        // 5. retryable exception
 
         // mock SQS helper
         Message message2 = new Message().withBody(SQS_MESSAGE_ERROR).withReceiptHandle(SQS_RECEIPT_ERROR);
         Message message3 = new Message().withBody(SQS_MESSAGE_SUCCESS).withReceiptHandle(SQS_RECEIPT_SUCCESS);
         Message message4 = new Message().withBody(SQS_MESSAGE_BAD_REQUEST).withReceiptHandle(
                 SQS_RECEIPT_BAD_REQUEST);
-        when(mockSqsHelper.poll(SQS_QUEUE_URL)).thenReturn(null, message2, message3, message4);
+        Message message5 = new Message().withBody(SQS_MESSAGE_RETRYABLE_ERROR).withReceiptHandle(
+                SQS_RECEIPT_RETRYABLE_ERROR);
+        when(mockSqsHelper.poll(SQS_QUEUE_URL)).thenReturn(null, message2, message3, message4, message5);
 
         // test callback
         Set<String> receivedMessageSet = new HashSet<>();
         PollSqsCallback testCallback = messageBody -> {
             receivedMessageSet.add(messageBody);
-            if (messageBody.equals(SQS_MESSAGE_ERROR)) {
-                throw new TestException();
-            } else if (messageBody.equals(SQS_MESSAGE_BAD_REQUEST)) {
-                throw new PollSqsWorkerBadRequestException();
+            switch (messageBody) {
+                case SQS_MESSAGE_ERROR:
+                    throw new TestException();
+                case SQS_MESSAGE_BAD_REQUEST:
+                    throw new PollSqsWorkerBadRequestException();
+                case SQS_MESSAGE_RETRYABLE_ERROR:
+                    throw new PollSqsWorkerRetryableException();
+                default:
+                    // Do nothing.
             }
         };
         worker.setCallback(testCallback);
 
-        // spy shouldKeepRunning() - 4 iterations
-        doReturn(true).doReturn(true).doReturn(true).doReturn(true).doReturn(false).when(worker).shouldKeepRunning();
+        // spy shouldKeepRunning() - 5 iterations
+        doReturn(true).doReturn(true).doReturn(true).doReturn(true).doReturn(true)
+                .doReturn(false).when(worker).shouldKeepRunning();
 
         // execute
         worker.run();
 
         // validate - callback received both messages
-        assertEquals(receivedMessageSet.size(), 3);
+        assertEquals(receivedMessageSet.size(), 4);
         assertTrue(receivedMessageSet.contains(SQS_MESSAGE_ERROR));
         assertTrue(receivedMessageSet.contains(SQS_MESSAGE_SUCCESS));
         assertTrue(receivedMessageSet.contains(SQS_MESSAGE_BAD_REQUEST));
+        assertTrue(receivedMessageSet.contains(SQS_MESSAGE_RETRYABLE_ERROR));
 
         // validate - success message and bad request message are deleted; error message is not
         verify(mockSqsHelper).deleteMessage(SQS_QUEUE_URL, SQS_RECEIPT_SUCCESS);
         verify(mockSqsHelper, never()).deleteMessage(SQS_QUEUE_URL, SQS_RECEIPT_ERROR);
         verify(mockSqsHelper).deleteMessage(SQS_QUEUE_URL, SQS_RECEIPT_BAD_REQUEST);
+        verify(mockSqsHelper, never()).deleteMessage(SQS_QUEUE_URL, SQS_RECEIPT_RETRYABLE_ERROR);
     }
 
     @Test
