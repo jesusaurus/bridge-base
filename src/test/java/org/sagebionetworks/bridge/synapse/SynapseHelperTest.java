@@ -113,7 +113,7 @@ public class SynapseHelperTest {
         createdTable.setId("test-table");
 
         ArgumentCaptor<TableEntity> tableCaptor = ArgumentCaptor.forClass(TableEntity.class);
-        doReturn(createdTable).when(synapseHelper).createEntityWithRetry(tableCaptor.capture());
+        doReturn(createdTable).when(synapseHelper).createTableWithRetry(tableCaptor.capture());
 
         // Mock create ACL call. Even though we don't care about the return value, we have to do it, otherwise it'll
         // call through to the real method. Likewise, for the result, just return a dummy object. We never look at it
@@ -681,7 +681,7 @@ public class SynapseHelperTest {
         when(mockSynapseClient.createEntity(inputTable)).thenReturn(outputTable);
 
         // execute and validate
-        TableEntity retVal = synapseHelper.createEntityWithRetry(inputTable);
+        TableEntity retVal = synapseHelper.createTableWithRetry(inputTable);
         assertSame(retVal, outputTable);
     }
 
