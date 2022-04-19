@@ -17,7 +17,7 @@ import java.net.URL;
 import java.util.List;
 
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -40,7 +40,7 @@ public class S3HelperTest {
     // input stream into a byte array or a string.
 
     @Mock
-    AmazonS3Client mockS3Client;
+    AmazonS3 mockS3Client;
 
     @InjectMocks
     S3Helper s3Helper;
