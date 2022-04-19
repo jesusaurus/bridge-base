@@ -2,7 +2,7 @@ package org.sagebionetworks.bridge.sqs;
 
 import java.util.List;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
@@ -17,10 +17,10 @@ import org.sagebionetworks.bridge.json.DefaultObjectMapper;
 public class SqsHelper {
     private static final Logger LOG = LoggerFactory.getLogger(SqsHelper.class);
 
-    private AmazonSQSClient sqsClient;
+    private AmazonSQS sqsClient;
 
     /** SQS client. */
-    public final void setSqsClient(AmazonSQSClient sqsClient) {
+    public final void setSqsClient(AmazonSQS sqsClient) {
         this.sqsClient = sqsClient;
     }
 

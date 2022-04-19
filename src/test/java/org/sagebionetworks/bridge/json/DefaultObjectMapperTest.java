@@ -8,7 +8,9 @@ import org.testng.annotations.Test;
 public class DefaultObjectMapperTest {
 
     private static class TestObject {
+        @SuppressWarnings("unused")
         private String name;
+        @SuppressWarnings("unused")
         private String value;
         @JsonCreator
         public TestObject(@JsonProperty("name") String name, 

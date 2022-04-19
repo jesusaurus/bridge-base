@@ -10,7 +10,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.util.List;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
@@ -31,7 +31,7 @@ public class SqsHelperTest {
         Message secondMessage = new Message();
         ReceiveMessageResult secondSqsResult = new ReceiveMessageResult().withMessages(secondMessage);
 
-        AmazonSQSClient mockSqsClient = mock(AmazonSQSClient.class);
+        AmazonSQS mockSqsClient = mock(AmazonSQS.class);
         ArgumentCaptor<ReceiveMessageRequest> sqsRecvRequestCaptor = ArgumentCaptor.forClass(
                 ReceiveMessageRequest.class);
         when(mockSqsClient.receiveMessage(sqsRecvRequestCaptor.capture())).thenReturn(firstSqsResult, secondSqsResult);
@@ -68,7 +68,7 @@ public class SqsHelperTest {
         // This is just a pass through. Trivial test to test the receipt handle is passed through
 
         // mock sqs client
-        AmazonSQSClient mockSqsClient = mock(AmazonSQSClient.class);
+        AmazonSQS mockSqsClient = mock(AmazonSQS.class);
 
         // set up test helper
         SqsHelper sqsHelper = new SqsHelper();
@@ -82,7 +82,7 @@ public class SqsHelperTest {
     @Test
     public void testSendAsJson() throws Exception {
         // mock sqs client
-        AmazonSQSClient mockSqsClient = mock(AmazonSQSClient.class);
+        AmazonSQS mockSqsClient = mock(AmazonSQS.class);
 
         // set up test helper
         SqsHelper sqsHelper = new SqsHelper();

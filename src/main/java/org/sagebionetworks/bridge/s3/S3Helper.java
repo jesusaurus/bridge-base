@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -32,13 +32,13 @@ import org.joda.time.DateTime;
 public class S3Helper {
     private static final Joiner LINES_JOINER = Joiner.on('\n').useForNull("");
 
-    private AmazonS3Client s3Client;
+    private AmazonS3 s3Client;
     
     /**
      * S3 Client. This is configured by Spring. We don't use the Autowired annotation because there are multiple S3
      * clients.
      */
-    public final void setS3Client(AmazonS3Client s3Client) {
+    public final void setS3Client(AmazonS3 s3Client) {
         this.s3Client = s3Client;
     }
 
