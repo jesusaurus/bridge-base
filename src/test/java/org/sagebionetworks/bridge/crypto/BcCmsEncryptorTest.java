@@ -82,4 +82,21 @@ public class BcCmsEncryptorTest {
             // expected exception
         }
     }
+
+    @Test(expectedExceptions = WrongEncryptionKeyException.class)
+    public void decryptWithWrongKey() throws Exception {
+        // Make an encryptor with the wrong key.
+        KeyPair keyPair = KeyPairFactory.newRsa2048();
+        CertificateFactory certFactory = new BcCertificateFactory();
+        X509Certificate cert = certFactory.newCertificate(keyPair, new CertificateInfo.Builder().build());
+        CmsEncryptor wrongKeyEncryptor = new BcCmsEncryptor(cert, null);
+
+        // Encrypt some data with the wrong key.
+        String text = "some text";
+        byte[] bytes = text.getBytes(StandardCharsets.ISO_8859_1);
+        byte[] encrypted = wrongKeyEncryptor.encrypt(bytes);
+
+        // Decrypt with the correct key. This will throw.
+        encryptorTwoWay.decrypt(encrypted);
+    }
 }
