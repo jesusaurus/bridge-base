@@ -58,7 +58,8 @@ public final class BcCmsEncryptor implements CmsEncryptor {
     }
 
     @Override
-    public byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException {
+    public byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException,
+            WrongEncryptionKeyException {
         if (privateKey == null) {
             throw new UnsupportedOperationException("Encryptor cannot decrypt without private key");
         }
@@ -72,7 +73,8 @@ public final class BcCmsEncryptor implements CmsEncryptor {
 
     /** {@inheritDoc} */
     @Override
-    public InputStream decrypt(InputStream encryptedStream) throws CertificateEncodingException, CMSException, IOException {
+    public InputStream decrypt(InputStream encryptedStream) throws CertificateEncodingException, CMSException,
+            IOException, WrongEncryptionKeyException {
         if (privateKey == null) {
             throw new UnsupportedOperationException("Encryptor cannot decrypt without private key");
         }
@@ -81,6 +83,11 @@ public final class BcCmsEncryptor implements CmsEncryptor {
         X509CertificateHolder certHolder = new X509CertificateHolder(cert.getEncoded());
         RecipientId recipientId = new KeyTransRecipientId(certHolder.getIssuer(), certHolder.getSerialNumber());
         RecipientInformation recInfo = envelopedData.getRecipientInfos().get(recipientId);
+        if (recInfo == null) {
+            // Sometimes people submit data that's been encrypted with the wrong key. When this happens, recInfo will
+            // be null. Throw a more helpful error messages instead NullPointedException.
+            throw new WrongEncryptionKeyException();
+        }
         Recipient recipient = new JceKeyTransEnvelopedRecipient(privateKey);
         return recInfo.getContentStream(recipient).getContentStream();
     }

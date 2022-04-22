@@ -13,11 +13,13 @@ public interface CmsEncryptor {
 
     byte[] encrypt(byte[] bytes) throws CMSException, IOException;
 
-    byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException;
+    byte[] decrypt(byte[] bytes) throws CMSException, CertificateEncodingException, IOException,
+            WrongEncryptionKeyException;
 
     /**
      * Takes in a stream of encrypted data and outputs a stream of decrypted data. The caller is responsible for
      * closing both streams.
      */
-    InputStream decrypt(InputStream encryptedStream) throws CertificateEncodingException, CMSException, IOException;
+    InputStream decrypt(InputStream encryptedStream) throws CertificateEncodingException, CMSException, IOException,
+            WrongEncryptionKeyException;
 }
