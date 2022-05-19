@@ -82,6 +82,13 @@ public class PropertiesConfigTest {
     }
 
     @Test
+    public void testSet() throws IOException {
+        Config config = new PropertiesConfig(configFile);
+        config.set("example.added", "example.added.value");
+        assertEquals(config.get("example.added"), "example.added.value");
+    }
+
+    @Test
     public void testGetInt() throws IOException {
         Config config = new PropertiesConfig(configFile, configFile);
         assertEquals(config.getInt("example.timeout"), 2000);

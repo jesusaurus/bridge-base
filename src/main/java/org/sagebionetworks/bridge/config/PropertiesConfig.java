@@ -182,6 +182,13 @@ public class PropertiesConfig implements Config {
     }
 
     @Override
+    public void set(String key, String value) {
+        checkNotNull(key);
+        checkNotNull(value);
+        properties.setProperty(key, value);
+    }
+
+    @Override
     public int getInt(final String key) {
         checkNotNull(key);
         return Integer.parseInt(get(key));

@@ -17,6 +17,12 @@ public interface Config {
     String get(String key);
 
     /**
+     * Sets the value of a config entry for the specified key.
+     * Do not include the "<environment>." prefix for the key.
+     */
+    void set(String key, String value);
+
+    /**
      * Gets the value of a config entry as an integer.
      * Do not include the "<environment>." prefix for the key.
      */
