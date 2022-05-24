@@ -25,6 +25,10 @@ public final class DynamoTestUtils {
             return null;
         }
         @Override
+        public void set(String key, String value) {
+            // no-op
+        }
+        @Override
         public int getInt(String key) {
             return 0;
         }
