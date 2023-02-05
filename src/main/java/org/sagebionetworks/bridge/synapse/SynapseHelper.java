@@ -112,9 +112,9 @@ public class SynapseHelper {
                     .put(ColumnType.INTEGER, 20)
                     .build();
 
-    private int asyncIntervalMillis = 1000;
-    private int asyncTimeoutLoops = 300;
     private SynapseClient synapseClient;
+
+    private int[] asyncGetBackoffPlan = {1, 2, 4, 8, 16, 32, 60, 60, 60, 60};
 
     // Rate limiter, used to limit the amount of traffic to Synapse. Synapse throttles at 10 requests per second.
     private final RateLimiter rateLimiter = RateLimiter.create(10.0);
@@ -123,17 +123,14 @@ public class SynapseHelper {
     // safety factor and rate limit to 12 per minute.
     private final RateLimiter getColumnModelsRateLimiter = RateLimiter.create(12.0 / 60.0);
 
-    /** Set the number of milliseconds between loops while polling async requests in Synapse. Defaults to 1000. */
-    public final void setAsyncIntervalMillis(int asyncIntervalMillis) {
-        this.asyncIntervalMillis = asyncIntervalMillis;
-    }
-
     /**
-     * Sets the number of loops while polling async requests in Synapse before we time out the request. Default is 300
-     * (5 minutes, using the default async interval millis).
+     * Sets the backoff plan for polling Synapse async get calls. Each element is how long in seconds we wait before
+     * making the next async get call. Default uses exponential back-off, starting at 1 second, maximum of 60 seconds.
+     * Total of 10 tries, totalling a little over 5 minutes.
      */
-    public final void setAsyncTimeoutLoops(int asyncTimeoutLoops) {
-        this.asyncTimeoutLoops = asyncTimeoutLoops;
+    public final void setAsyncGetBackoffPlan(int[] asyncGetBackoffPlan) {
+        // As per Findbugs, we need to copy the array for safety.
+        this.asyncGetBackoffPlan = asyncGetBackoffPlan.clone();
     }
 
     /**
@@ -416,29 +413,12 @@ public class SynapseHelper {
         String jobToken = startTableTransactionWithRetry(changeList, tableId);
 
         // Poll async get until success or timeout.
-        boolean success = false;
-        List<TableUpdateResponse> responseList = null;
-        for (int loops = 0; loops < asyncTimeoutLoops; loops++) {
-            if (asyncIntervalMillis > 0) {
-                try {
-                    Thread.sleep(asyncIntervalMillis);
-                } catch (InterruptedException ex) {
-                    // noop
-                }
-            }
-
-            // poll
-            responseList = getTableTransactionResultWithRetry(jobToken, tableId);
-            if (responseList != null) {
-                success = true;
-                break;
-            }
-
-            // Result not ready. Loop around again.
-        }
-
-        if (!success) {
-            throw new BridgeSynapseException("Timed out updating table columns for table " + tableId);
+        List<TableUpdateResponse> responseList;
+        try {
+            responseList = pollAsyncGet(() -> getTableTransactionResultWithRetry(jobToken,
+                    tableId));
+        } catch (BridgeSynapseException  ex) {
+            throw new BridgeSynapseException("Timed out updating table columns for table " + tableId, ex);
         }
 
         // The list should have a single response, and it should be a TableSchemaChangeResponse.
@@ -483,31 +463,14 @@ public class SynapseHelper {
         String jobToken = uploadTsvStartWithRetry(tableId, fileHandleId, tableDesc);
 
         // poll asyncGet until success or timeout
-        boolean success = false;
-        Long linesProcessed = null;
-        for (int loops = 0; loops < asyncTimeoutLoops; loops++) {
-            if (asyncIntervalMillis > 0) {
-                try {
-                    Thread.sleep(asyncIntervalMillis);
-                } catch (InterruptedException ex) {
-                    // noop
-                }
-            }
-
-            // poll
-            UploadToTableResult uploadResult = getUploadTsvStatus(jobToken, tableId);
-            if (uploadResult != null) {
-                linesProcessed = uploadResult.getRowsProcessed();
-                success = true;
-                break;
-            }
-
-            // Result not ready. Loop around again.
+        UploadToTableResult uploadResult;
+        try {
+            uploadResult = pollAsyncGet(() -> getUploadTsvStatus(jobToken, tableId));
+        } catch (BridgeSynapseException  ex) {
+            throw new BridgeSynapseException("Timed out uploading file handle " + fileHandleId, ex);
         }
 
-        if (!success) {
-            throw new BridgeSynapseException("Timed out uploading file handle " + fileHandleId);
-        }
+        Long linesProcessed = uploadResult.getRowsProcessed();
         if (linesProcessed == null) {
             // Not sure if Synapse will ever do this, but code defensively, just in case.
             throw new BridgeSynapseException("Null rows processed");
@@ -713,27 +676,11 @@ public class SynapseHelper {
     public RowReferenceSet appendRowsToTable(AppendableRowSet rowSet, String tableId) throws BridgeSynapseException,
             SynapseException {
         String jobId = appendRowsToTableStart(rowSet, tableId);
-        RowReferenceSet rowReferenceSet;
-        for (int loops = 0; loops < asyncTimeoutLoops; loops++) {
-            if (asyncIntervalMillis > 0) {
-                try {
-                    Thread.sleep(asyncIntervalMillis);
-                } catch (InterruptedException ex) {
-                    // noop
-                }
-            }
-
-            // Poll.
-            rowReferenceSet = appendRowsToTableGet(jobId, tableId);
-            if (rowReferenceSet != null) {
-                return rowReferenceSet;
-            }
-
-            // Result not ready. Loop around again.
+        try {
+            return pollAsyncGet(() -> appendRowsToTableGet(jobId, tableId));
+        } catch (BridgeSynapseException  ex) {
+            throw new BridgeSynapseException("Timed out appending rows to table " + tableId, ex);
         }
-
-        // If we make it this far, this means we timed out.
-        throw new BridgeSynapseException("Timed out appending rows to table " + tableId);
     }
 
     /** Starts async job to append rows to a table. */
@@ -1018,5 +965,35 @@ public class SynapseHelper {
         if (isManager) {
             synapseClient.setTeamMemberPermissions(teamIdStr, principalIdStr, true);
         }
+    }
+
+    // This exists to make our exception handling cleaner.
+    private interface SynapseCallable<T> {
+        T call() throws SynapseException;
+    }
+
+    // Helper function that handles polling async get calls to Synapse with exponential backoff.
+    private <T> T pollAsyncGet(SynapseCallable<T> asyncGetCall) throws BridgeSynapseException, SynapseException {
+        // Poll async get until success or timeout.
+        for (int waitTimeSeconds : asyncGetBackoffPlan) {
+            if (waitTimeSeconds > 0) {
+                try {
+                    Thread.sleep(waitTimeSeconds * 1000L);
+                } catch (InterruptedException ex) {
+                    // noop
+                }
+            }
+
+            // Poll.
+            T response = asyncGetCall.call();
+            if (response != null) {
+                return response;
+            }
+
+            // Result not ready. Loop around again.
+        }
+
+        // If we make it this far, this means we timed out.
+        throw new BridgeSynapseException("Timed out calling Synapse async get");
     }
 }

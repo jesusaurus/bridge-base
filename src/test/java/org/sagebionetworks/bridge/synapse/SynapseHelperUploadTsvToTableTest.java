@@ -52,8 +52,7 @@ public class SynapseHelperUploadTsvToTableTest {
         synapseHelper.setSynapseClient(mockSynapseClient);
 
         // Set async loop and rate limits to make tests more reasonable.
-        synapseHelper.setAsyncIntervalMillis(0);
-        synapseHelper.setAsyncTimeoutLoops(2);
+        synapseHelper.setAsyncGetBackoffPlan(new int[] { 0, 0 });
         synapseHelper.setRateLimit(1000);
         synapseHelper.setGetColumnModelsRateLimit(1000);
 
