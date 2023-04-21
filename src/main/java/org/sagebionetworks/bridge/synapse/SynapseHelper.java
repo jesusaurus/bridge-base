@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -698,6 +699,42 @@ public class SynapseHelper {
         try {
             rateLimiter.acquire();
             return synapseClient.appendRowSetToTableGet(jobId, tableId);
+        } catch (SynapseResultNotReadyException ex) {
+            // catch this and return null so we don't retry on "not ready"
+            return null;
+        }
+    }
+
+    /**
+     * Queries a table. This handles polling Synapse in a loop and error handling. Note that this method already
+     * exists in SynapseClient.java, but we don't use it because we need to handle our own rate limiting.
+     */
+    public QueryResultBundle queryTableEntityBundle(String query, String tableId) throws BridgeSynapseException,
+            SynapseException {
+        String jobId = queryTableEntityBundleStart(query, tableId);
+        try {
+            return pollAsyncGet(() -> queryTableEntityBundleGet(jobId, tableId));
+        } catch (BridgeSynapseException  ex) {
+            throw new BridgeSynapseException("Timed out appending rows to table " + tableId, ex);
+        }
+    }
+
+    /** Starts an async query on a table. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public String queryTableEntityBundleStart(String query, String tableId) throws SynapseException {
+        rateLimiter.acquire();
+        return synapseClient.queryTableEntityBundleAsyncStart(query, null, null,
+                SynapseClient.QUERY_PARTMASK | SynapseClient.COUNT_PARTMASK, tableId);
+    }
+
+    /** Polls the result of an async table query. Returns null if the result is not ready. */
+    @RetryOnFailure(attempts = 2, delay = 100, unit = TimeUnit.MILLISECONDS, types = SynapseException.class,
+            randomize = false)
+    public QueryResultBundle queryTableEntityBundleGet(String jobId, String tableId) throws SynapseException {
+        try {
+            rateLimiter.acquire();
+            return synapseClient.queryTableEntityBundleAsyncGet(jobId, tableId);
         } catch (SynapseResultNotReadyException ex) {
             // catch this and return null so we don't retry on "not ready"
             return null;
